@@ -45,7 +45,7 @@ export function scheduleCard(
 
   const r = RATING_MAP[rating];
   const scheduling = f.repeat(card, now);
-  const result = scheduling[r];
+  const result = (scheduling as any)[r];
   const nextCard = result.card;
 
   return {
