@@ -42,6 +42,7 @@ export function dbCardToFsrsCard(dbCard: {
     lapses: dbCard.lapses,
     state: dbCard.state as 0 | 1 | 2 | 3,
     last_review: dbCard.lastReview ?? new Date(0),
+    learning_steps: 0,
   };
 }
 
