@@ -179,7 +179,7 @@ function AdminUserTab() {
 
       {/* 追加フォーム */}
       <form onSubmit={handleAdd} style={{ background:"#0d1f38", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
-        <input type="email" required placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)}
+        <input type="text" required placeholder="ユーザー名" value={email} onChange={(e) => setEmail(e.target.value)}
           style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}/>
         <input type="password" required placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
           style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}/>
