@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { SRS_OPTIONS, type SrsRating } from "@/lib/srs";
 
 // ---------- 型 ----------
@@ -140,6 +140,86 @@ function StatsTab() {
   );
 }
 
+function AdminUserTab() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("user");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users ?? []));
+  }, [msg]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setMsg("");
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role }),
+    });
+    if (res.ok) {
+      setMsg("✓ ユーザーを追加しました");
+      setEmail("");
+      setPassword("");
+    } else {
+      setMsg("エラーが発生しました");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:12, marginTop:16 }}>
+      <div style={{ fontSize:13, color:"#4a7fa5" }}>ユーザー管理</div>
+
+      {/* 追加フォーム */}
+      <form onSubmit={handleAdd} style={{ background:"#0d1f38", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
+        <input type="email" required placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)}
+          style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}/>
+        <input type="password" required placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
+          style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}/>
+        <select value={role} onChange={(e) => setRole(e.target.value)}
+          style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+        {msg && <div style={{ fontSize:13, color: msg.startsWith("✓") ? "#34d399" : "#f87171" }}>{msg}</div>}
+        <button type="submit" disabled={loading}
+          style={{ padding:"10px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", opacity:loading?0.7:1 }}>
+          {loading ? "追加中..." : "ユーザーを追加"}
+        </button>
+      </form>
+
+      {/* ユーザー一覧 */}
+      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        {users.map((u) => (
+          <div key={u.id} style={{ background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize:13, color:"#b8cfe0" }}>{u.email}</span>
+            <span style={{ fontSize:11, padding:"2px 8px", borderRadius:10, background: u.role === "admin" ? "rgba(251,191,36,0.15)" : "rgba(100,100,100,0.2)", color: u.role === "admin" ? "#fbbf24" : "#94b4cc" }}>{u.role}</span>
+            <button onClick={async () => {
+              if (!confirm(`${u.email} を削除しますか？`)) return;
+              await fetch("/api/admin/users", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: u.id }),
+              });
+              setUsers(prev => prev.filter(x => x.id !== u.id));
+            }}
+              style={{ fontSize:11, padding:"2px 8px", borderRadius:6, border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171", cursor:"pointer" }}>
+              削除
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReviewTab({ onStart }: { onStart: () => void }) {
   const [cards, setCards] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -209,6 +289,7 @@ export default function QuizPage() {
   const [mode, setMode] = useState<"new" | "review">("new");
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
+  const { data: session } = useSession();
 
   const fetchNext = useCallback(async () => {
     setPhase("loading");
@@ -391,6 +472,8 @@ const res = await fetch(`/api/quiz/next?${params.toString()}`);
               サインアウト
             </button>
           </div>
+          {/* ユーザー管理（adminのみ） */}
+          {(session as any)?.user?.role === "admin" && <AdminUserTab />}
         </div>
       )}
 
