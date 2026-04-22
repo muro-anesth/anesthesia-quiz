@@ -67,9 +67,7 @@ ${correctTexts}
   );
 
   if (!geminiRes.ok || !geminiRes.body) {
-    const errText = await geminiRes.text();
-    console.error("Gemini API error:", geminiRes.status, errText);
-    return NextResponse.json({ error: "Gemini API error", detail: errText }, { status: 500 });
+    return NextResponse.json({ error: "Gemini API error" }, { status: 500 });
   }
 
   // Gemini SSE → プレーンテキストストリームに変換
