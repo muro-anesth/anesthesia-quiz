@@ -22,7 +22,7 @@ interface Question {
   optionImages: string; // JSON
 }
 
-type Phase = "loading" | "question" | "answered" | "empty";
+type Phase = "loading" | "question" | "answered" | "empty" | "summary";
 
 const CHOICE_KEYS = ["a", "b", "c", "d", "e"] as const;
 type ChoiceKey = (typeof CHOICE_KEYS)[number];
@@ -62,6 +62,140 @@ function isAnswerCorrect(q: Question, selected: string[]) {
   return sel === ans;
 }
 
+function StatsTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); });
+  }, []);
+
+  if (loading) return (
+    <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#4a7fa5", fontSize:14 }}>読み込み中...</div>
+  );
+
+  if (!data || data.total === 0) return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12, padding:24 }}>
+      <div style={{ fontSize:36 }}>📊</div>
+      <div style={{ color:"#e2eaf4", fontSize:16, fontWeight:700 }}>まだデータがありません</div>
+      <div style={{ color:"#4a7fa5", fontSize:13 }}>クイズを解くと成績が表示されます</div>
+    </div>
+  );
+
+  return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24, overflowY:"auto" }}>
+      <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:4 }}>成績</div>
+
+      {/* 全体サマリー */}
+      <div style={{ display:"flex", gap:10 }}>
+        {[
+          { label:"解答数", value:`${data.total}問`, color:"#e2eaf4" },
+          { label:"正解数", value:`${data.correct}問`, color:"#34d399" },
+          { label:"正答率", value:`${data.rate}%`, color:"#38bdf8" },
+        ].map((item) => (
+          <div key={item.label} style={{ flex:1, background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 10px", textAlign:"center" }}>
+            <div style={{ fontSize:18, fontWeight:700, color:item.color }}>{item.value}</div>
+            <div style={{ fontSize:11, color:"#4a7fa5", marginTop:4 }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 直近7日 */}
+      <div style={{ background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:16 }}>
+        <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>直近7日間</div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ color:"#b8cfe0", fontSize:14 }}>{data.recentTotal}問 解答</span>
+          <span style={{ color:"#34d399", fontSize:14, fontWeight:700 }}>
+            {data.recentTotal > 0 ? Math.round((data.recentCorrect / data.recentTotal) * 100) : 0}% 正解
+          </span>
+        </div>
+      </div>
+
+      {/* カテゴリ別 */}
+      <div style={{ background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:16 }}>
+        <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:12 }}>カテゴリ別正答率（低い順）</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {data.categories.map((cat: any) => (
+            <div key={cat.name}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                <span style={{ fontSize:12, color:"#b8cfe0" }}>{cat.name}</span>
+                <span style={{ fontSize:12, color:"#94b4cc" }}>{cat.correct}/{cat.total} ({cat.rate}%)</span>
+              </div>
+              <div style={{ height:6, background:"rgba(255,255,255,0.07)", borderRadius:3, overflow:"hidden" }}>
+                <div style={{
+                  height:"100%",
+                  width:`${cat.rate}%`,
+                  background: cat.rate >= 80 ? "#34d399" : cat.rate >= 60 ? "#38bdf8" : "#f87171",
+                  borderRadius:3,
+                  transition:"width 0.4s ease",
+                }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewTab({ onStart }: { onStart: () => void }) {
+  const [cards, setCards] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/quiz/review")
+      .then((r) => r.json())
+      .then((data) => {
+        setCards(data.cards ?? []);
+        setTotal(data.total ?? 0);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24 }}>
+      <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:4 }}>復習キュー</div>
+      {loading ? (
+        <div style={{ color:"#4a7fa5", fontSize:14 }}>読み込み中...</div>
+      ) : total === 0 ? (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12 }}>
+          <div style={{ fontSize:36 }}>✅</div>
+          <div style={{ color:"#e2eaf4", fontSize:16, fontWeight:700 }}>今日の復習は完了！</div>
+          <div style={{ color:"#4a7fa5", fontSize:13 }}>新しい問題に挑戦しましょう</div>
+          <button onClick={onStart}
+            style={{ marginTop:8, padding:"12px 28px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+            クイズを始める
+          </button>
+        </div>
+      ) : (
+        <>
+          <div style={{ background:"rgba(14,165,233,0.12)", border:"1px solid rgba(14,165,233,0.3)", borderRadius:10, padding:"12px 16px", fontSize:13, color:"#38bdf8" }}>
+            🔁 復習待ち: <strong>{total} 問</strong>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, overflowY:"auto" }}>
+            {cards.map((c) => (
+              <div key={c.questionId} style={{ background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                  <span style={{ fontSize:11, color:"#4a7fa5" }}>{c.year} Q{c.qnum}</span>
+                  <span style={{ fontSize:11, background:"rgba(100,100,100,0.2)", padding:"2px 8px", borderRadius:10, color:"#94b4cc" }}>{c.category}</span>
+                </div>
+                <div style={{ fontSize:13, color:"#b8cfe0", lineHeight:1.5 }}>{c.stem}</div>
+              </div>
+            ))}
+          </div>
+          <button onClick={onStart}
+            style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+            復習を始める
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---------- コンポーネント ----------
 export default function QuizPage() {
   const [question, setQuestion] = useState<Question | null>(null);
@@ -71,8 +205,10 @@ export default function QuizPage() {
   const [showExp, setShowExp] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
+  const [sessionStart] = useState(() => Date.now());
   const [mode, setMode] = useState<"new" | "review">("new");
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
+  const [yearFilter, setYearFilter] = useState("");
 
   const fetchNext = useCallback(async () => {
     setPhase("loading");
@@ -80,7 +216,9 @@ export default function QuizPage() {
     setShowExp(false);
     setExplanation(null);
     try {
-      const res = await fetch("/api/quiz/next");
+      const params = new URLSearchParams();
+if (yearFilter) params.set("year", yearFilter);
+const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
       if (data.question) {
         setQuestion(data.question);
@@ -93,7 +231,7 @@ export default function QuizPage() {
     } catch {
       setPhase("empty");
     }
-  }, []);
+  }, [yearFilter]);
 
   useEffect(() => { fetchNext(); }, [fetchNext]);
 
@@ -213,14 +351,85 @@ export default function QuizPage() {
       </div>
 
       {/* ---- Loading ---- */}
-      {phase === "loading" && (
+      {navTab === "quiz" && phase === "loading" && (
         <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#4a7fa5", fontSize:14 }}>
           読み込み中...
         </div>
       )}
 
+{/* ---- Stats ---- */}
+      {navTab === "stats" && phase !== "summary" && (
+        <StatsTab />
+      )}
+
+{/* ---- Review ---- */}
+      {navTab === "review" && phase !== "summary" && (
+        <ReviewTab onStart={() => setNavTab("quiz")} />
+      )}
+
+{/* ---- Settings ---- */}
+      {navTab === "settings" && phase !== "summary" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24 }}>
+          <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:8 }}>設定</div>
+
+          {/* 年度絞り込み */}
+          <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>年度で絞り込む</div>
+            <select onChange={(e) => setYearFilter(e.target.value)} value={yearFilter}
+              style={{ width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
+              <option value="">すべての年度</option>
+              <option value="2023a">2023a</option>
+              <option value="2023b">2023b</option>
+            </select>
+          </div>
+
+          {/* サインアウト */}
+          <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>アカウント</div>
+            <button onClick={() => signOut({ callbackUrl: "/login" })}
+              style={{ width:"100%", padding:"12px", borderRadius:10, border:"1px solid rgba(239,68,68,0.3)", background:"rgba(239,68,68,0.1)", color:"#f87171", fontSize:14, fontWeight:600, cursor:"pointer" }}>
+              サインアウト
+            </button>
+          </div>
+        </div>
+      )}
+
+{/* ---- Summary ---- */}
+      {phase === "summary" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:20, padding:24 }}>
+          <div style={{ fontSize:40 }}>📊</div>
+          <div style={{ fontSize:20, fontWeight:700, color:"#e2eaf4" }}>今日の結果</div>
+          <div style={{ background:"#111f36", borderRadius:16, padding:"24px 32px", border:"1px solid rgba(255,255,255,0.07)", display:"flex", flexDirection:"column", gap:16, width:"100%", maxWidth:320 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:"#4a7fa5", fontSize:14 }}>解答問題数</span>
+              <span style={{ color:"#e2eaf4", fontSize:20, fontWeight:700 }}>{stats.total} 問</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:"#4a7fa5", fontSize:14 }}>正解数</span>
+              <span style={{ color:"#34d399", fontSize:20, fontWeight:700 }}>{stats.correct} 問</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:"#4a7fa5", fontSize:14 }}>正答率</span>
+              <span style={{ color:"#38bdf8", fontSize:20, fontWeight:700 }}>
+                {stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0}%
+              </span>
+            </div>
+            <div style={{ height:1, background:"rgba(255,255,255,0.07)" }}/>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ color:"#4a7fa5", fontSize:14 }}>学習時間</span>
+              <span style={{ color:"#e2eaf4", fontSize:16, fontWeight:600 }}>
+                {Math.round((Date.now() - sessionStart) / 60000)} 分
+              </span>
+            </div>
+          </div>
+          <button onClick={fetchNext} style={{ width:"100%", maxWidth:320, padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+            続きを学習する
+          </button>
+        </div>
+      )}
+
       {/* ---- Empty ---- */}
-      {phase === "empty" && (
+      {navTab === "quiz" && phase === "empty" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, padding:24 }}>
           <div style={{ fontSize:40 }}>🎉</div>
           <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4" }}>全問完了！</div>
@@ -234,7 +443,7 @@ export default function QuizPage() {
       )}
 
       {/* ---- Question ---- */}
-      {(phase === "question" || phase === "answered") && question && (
+      {navTab === "quiz" && (phase === "question" || phase === "answered") && question && (
         <>
           {/* Category */}
           <div style={{ padding:"0 20px 12px" }}>
@@ -254,13 +463,11 @@ export default function QuizPage() {
               {question.stem}
             </div>
             {/* 画像 */}
-            {question.hasImage && question.mainImage && optionImages.length === 0 && (
-              <img
-                src={`/quiz-images/${question.year}/${question.mainImage}`}
-                alt={`Q${question.qnum} 図`}
-                style={{ width:"100%", borderRadius:8, marginTop:12 }}
-              />
-            )}
+            {question.hasImage && !!question.mainImage && <img
+  src={`/quiz-images/${question.year}/${question.mainImage}`}
+  alt={`Q${question.qnum} 図`}
+  style={{ width:"100%", borderRadius:8, marginTop:12 }}
+/>}
           </div>
 
           {/* Choices */}
@@ -318,6 +525,12 @@ export default function QuizPage() {
               )}
 
               {/* SRS */}
+<div style={{ padding:"0 16px 8px", textAlign:"center" }}>
+            <button onClick={() => setPhase("summary")}
+              style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.15)", borderRadius:10, padding:"10px 24px", color:"#4a7fa5", fontSize:13, cursor:"pointer" }}>
+              今日はここまで
+            </button>
+          </div>
               <div style={{ padding:"2px 16px 16px" }}>
                 <div style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.1em", color:"#2d4a60", marginBottom:8, textAlign:"center" }}>次の復習タイミング</div>
                 <div style={{ display:"flex", gap:7 }}>
