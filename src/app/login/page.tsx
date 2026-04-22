@@ -33,7 +33,7 @@ function LoginForm() {
         <h1 style={{ color:"#e2eaf4", fontSize:22, fontWeight:700, marginBottom:6 }}>麻酔科クイズ</h1>
         <p style={{ color:"#4a7fa5", fontSize:13, marginBottom:32 }}>サインインしてください</p>
         <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          <input type="email" required placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)}
+          <input type="text" required placeholder="ユーザー名" value={email} onChange={(e) => setEmail(e.target.value)}
             style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%" }}/>
           <input type="password" required placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
             style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%" }}/>
