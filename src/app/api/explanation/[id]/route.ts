@@ -6,16 +6,17 @@ export const runtime = "nodejs";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("explanation API called, id:", params.id);
+  const { id } = await params;
+  console.log("explanation API called, id:", id);
   const session = await auth();
   console.log("session:", session?.user?.id ?? "none");
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const questionId = parseInt(params.id);
+  const questionId = parseInt(id);
   if (isNaN(questionId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
