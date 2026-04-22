@@ -358,7 +358,8 @@ const res = await fetch(`/api/quiz/next?${params.toString()}`);
         if (done) break;
         setExplanation((prev) => (prev ?? "") + dec.decode(value));
       }
-    } catch {
+    } catch (err) {
+      console.error("fetchExplanation error:", err);
       setExplanation(null);
     } finally {
       setExpLoading(false);
