@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
@@ -16,17 +16,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
+        
         const users = await db.$queryRaw<{id: string, email: string, password: string | null, role: string}[]>`
           SELECT id, email, password, role FROM "User" WHERE email = ${credentials.email as string} LIMIT 1
         `;
-
+        
         const user = users[0];
+        console.log("user found:", user?.email, "has password:", !!user?.password);
         if (!user || !user.password) return null;
-
+        
         const ok = await bcrypt.compare(credentials.password as string, user.password);
+        console.log("password match:", ok);
         if (!ok) return null;
-
+        
         return { id: user.id, email: user.email, role: user.role };
       },
     }),

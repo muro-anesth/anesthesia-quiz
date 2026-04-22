@@ -41,8 +41,8 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("user")
-  password      String?   // ← 追加
+  role          String    @default("user") // user | admin
+  password      String?
   createdAt     DateTime  @default(now())
 
   accounts Account[]
