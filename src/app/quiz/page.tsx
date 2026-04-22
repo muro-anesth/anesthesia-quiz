@@ -70,6 +70,7 @@ export default function QuizPage() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showExp, setShowExp] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
+  const [expLoading, setExpLoading] = useState(false);
   const [stats, setStats] = useState({ correct: 0, total: 0 });
   const [mode, setMode] = useState<"new" | "review">("new");
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
@@ -79,6 +80,7 @@ export default function QuizPage() {
     setSelected([]);
     setShowExp(false);
     setExplanation(null);
+    setExpLoading(false);
     try {
       const res = await fetch("/api/quiz/next");
       const data = await res.json();
@@ -121,15 +123,27 @@ export default function QuizPage() {
     setIsCorrect(correct);
     setPhase("answered");
     setStats((s) => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
+  }
 
-    // 解説を取得（あれば）
+  async function fetchExplanation(qid: number) {
+    if (expLoading || explanation !== null) return;
+    setExpLoading(true);
+    setExplanation("");
     try {
-      const res = await fetch(`/api/explanation/${question.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setExplanation(data.body ?? null);
+      const res = await fetch(`/api/explanation/${qid}`);
+      if (!res.ok || !res.body) { setExplanation(null); return; }
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        setExplanation((prev) => (prev ?? "") + dec.decode(value));
       }
-    } catch { /* 解説なし */ }
+    } catch {
+      setExplanation(null);
+    } finally {
+      setExpLoading(false);
+    }
   }
 
   async function handleSRS(rating: SrsRating) {
@@ -307,13 +321,20 @@ export default function QuizPage() {
               </div>
 
               {/* 解説トグル */}
-              <div onClick={() => setShowExp(v=>!v)} style={{ margin:"0 16px 10px", padding:"10px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", fontSize:13, color:"#4a7fa5" }}>
+              <div onClick={() => {
+                if (!showExp && explanation === null && question) fetchExplanation(question.id);
+                setShowExp(v=>!v);
+              }} style={{ margin:"0 16px 10px", padding:"10px 14px", borderRadius:10, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", fontSize:13, color:"#4a7fa5" }}>
                 <span>💡 解説{showExp ? "を閉じる" : "を見る"}</span>
                 <span>{showExp ? "▲" : "▼"}</span>
               </div>
               {showExp && (
                 <div style={{ margin:"0 16px 12px", padding:14, borderRadius:10, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", fontSize:13, lineHeight:1.8, color:"#94b4cc" }}>
-                  {explanation ?? "（解説未登録）"}
+                  {expLoading && !explanation
+                    ? <span style={{ color:"#4a7fa5" }}>解説を生成中…</span>
+                    : explanation
+                    ? explanation
+                    : "（解説を取得できませんでした）"}
                 </div>
               )}
 
