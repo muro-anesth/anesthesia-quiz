@@ -9,9 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  console.log("explanation API called, id:", id);
   const session = await auth();
-  console.log("session:", session?.user?.id ?? "none");
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

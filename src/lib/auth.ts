@@ -22,11 +22,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         `;
         
         const user = users[0];
-        console.log("user found:", user?.email, "has password:", !!user?.password);
         if (!user || !user.password) return null;
         
         const ok = await bcrypt.compare(credentials.password as string, user.password);
-        console.log("password match:", ok);
         if (!ok) return null;
         
         return { id: user.id, email: user.email, role: user.role };
