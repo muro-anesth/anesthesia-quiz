@@ -64,7 +64,7 @@ ${correctTexts}
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 500 },
+        generationConfig: { maxOutputTokens: 1024 },
       }),
     }
   );
