@@ -290,6 +290,7 @@ export default function QuizPage() {
   const [mode, setMode] = useState<"new" | "review">("new");
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
+  const [years, setYears] = useState<string[]>([]);
   const { data: session } = useSession();
 
   const fetchNext = useCallback(async () => {
@@ -315,6 +316,12 @@ const res = await fetch(`/api/quiz/next?${params.toString()}`);
       setPhase("empty");
     }
   }, [yearFilter]);
+
+useEffect(() => {
+    fetch("/api/quiz/years")
+      .then((r) => r.json())
+      .then((d) => setYears(d.years ?? []));
+  }, []);
 
   useEffect(() => { fetchNext(); }, [fetchNext]);
 
@@ -474,8 +481,9 @@ const res = await fetch(`/api/quiz/next?${params.toString()}`);
             <select onChange={(e) => setYearFilter(e.target.value)} value={yearFilter}
               style={{ width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
               <option value="">すべての年度</option>
-              <option value="2023a">2023a</option>
-              <option value="2023b">2023b</option>
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
 
