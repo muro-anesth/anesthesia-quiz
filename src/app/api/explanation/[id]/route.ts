@@ -3,17 +3,18 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await params;
   const questionId = parseInt(id);
   if (isNaN(questionId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
@@ -55,56 +56,4 @@ ${correctTexts}
     return NextResponse.json({ error: "GEMINI_API_KEY not set" }, { status: 500 });
   }
 
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 1024 },
-      }),
-    }
-  );
-
-  if (!geminiRes.ok || !geminiRes.body) {
-    const errText = await geminiRes.text();
-    console.error("Gemini API error:", geminiRes.status, errText);
-    return NextResponse.json({ error: "Gemini API error", detail: errText }, { status: 500 });
-  }
-
-  // Gemini SSE → プレーンテキストストリームに変換
-  const enc = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      const reader = geminiRes.body!.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += dec.decode(value, { stream: true });
-          const lines = buf.split("\n");
-          buf = lines.pop() ?? "";
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const json = line.slice(6).trim();
-            if (!json) continue;
-            try {
-              const ev = JSON.parse(json);
-              const text = ev.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) controller.enqueue(enc.encode(text));
-            } catch {}
-          }
-        }
-      } finally {
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
-}
+  const ge

@@ -354,17 +354,12 @@ useEffect(() => {
   async function fetchExplanation(qid: number) {
     if (expLoading || explanation !== null) return;
     setExpLoading(true);
-    setExplanation("");
+    setExplanation(null);
     try {
       const res = await fetch(`/api/explanation/${qid}`);
-      if (!res.ok || !res.body) { setExplanation(null); return; }
-      const reader = res.body.getReader();
-      const dec = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        setExplanation((prev) => (prev ?? "") + dec.decode(value));
-      }
+      if (!res.ok) { setExplanation(null); return; }
+      const data = await res.json();
+      setExplanation(data.text ?? null);
     } catch (err) {
       console.error("fetchExplanation error:", err);
       setExplanation(null);
