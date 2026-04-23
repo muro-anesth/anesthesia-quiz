@@ -32,8 +32,7 @@ export async function GET(
     .map((k) => `${k.toUpperCase()}: ${choiceMap[k] ?? ""}`)
     .join("\n");
 
-  const prompt = `あなたは麻酔科専門医であり指導医です。
-以下の麻酔科専門医試験の問題について、専攻医・後期研修医向けに解説してください。
+  const prompt = `あなたは麻酔科専門医であり指導医です。以下の麻酔科専門医試験の問題について、専攻医・後期研修医向けに解説してください。
 
 【問題】
 ${q.stem}
@@ -48,12 +47,32 @@ e: ${q.choiceE}
 【正解】${answerLetters}
 ${correctTexts}
 
-以下の構成で、流れるような文章で250字程度に収めてください（箇条書き不可）：
-まず正解の根拠を明確に述べ、次に間違えやすい選択肢があればその理由を説明し、最後に臨床的な要点を1文で締めてください。`;
+正解の根拠を明確に述べ、間違えやすい選択肢があればその理由を説明し、最後に臨床的な要点を1文で締めてください。300字程度でお願いします。`;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "GEMINI_API_KEY not set" }, { status: 500 });
   }
 
-  const ge
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 2048 },
+      }),
+    }
+  );
+
+  if (!geminiRes.ok) {
+    const errText = await geminiRes.text();
+    console.error("Gemini API error:", geminiRes.status, errText);
+    return NextResponse.json({ error: "Gemini API error" }, { status: 500 });
+  }
+
+  const data = await geminiRes.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+  return NextResponse.json({ text });
+}
