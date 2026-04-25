@@ -54,22 +54,25 @@ function getChoiceText(q: Question, ch: ChoiceKey): string {
   return map[ch];
 }
 
-// 音声プリロード
+const soundCache: Record<string, HTMLAudioElement> = {};
 if (typeof window !== "undefined") {
-  ["/sounds/click.mp3", "/sounds/right.mp3", "/sounds/wrong.mp3"].forEach((src) => {
+  const files: Record<string, string> = {
+    click: "/sounds/click.mp3",
+    correct: "/sounds/right.mp3",
+    incorrect: "/sounds/wrong.mp3",
+  };
+  Object.entries(files).forEach(([key, src]) => {
     const a = new Audio(src);
     a.preload = "auto";
+    soundCache[key] = a;
   });
 }
 
 function playSound(type: "click" | "correct" | "incorrect") {
   try {
-    const files: Record<string, string> = {
-      click: "/sounds/click.mp3",
-      correct: "/sounds/right.mp3",
-      incorrect: "/sounds/wrong.mp3",
-    };
-    const audio = new Audio(files[type]);
+    const audio = soundCache[type];
+    if (!audio) return;
+    audio.currentTime = 0;
     audio.play();
   } catch {}
 }
@@ -275,7 +278,7 @@ function ReviewTab({ onStart }: { onStart: () => void }) {
           <div style={{ background:"rgba(14,165,233,0.12)", border:"1px solid rgba(14,165,233,0.3)", borderRadius:10, padding:"12px 16px", fontSize:13, color:"#38bdf8" }}>
             🔁 復習待ち: <strong>{total} 問</strong>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:8, overflowY:"auto" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:8, overflowY:"auto", maxHeight:"50vh" }}>
             {cards.map((c) => (
               <div key={c.questionId} style={{ background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 16px" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
