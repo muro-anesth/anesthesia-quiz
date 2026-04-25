@@ -309,7 +309,12 @@ export default function QuizPage() {
     setShowExp(false);
     setExplanation(null);
     setExpLoading(false);
-    shuffleChoices();
+    // single タイプのみシャッフル
+    if (data.question?.questionType === "single") {
+      shuffleChoices();
+    } else {
+      setDisplayOrder(["a","b","c","d","e"]);
+    }
     try {
       const params = new URLSearchParams();
 if (yearFilter) params.set("year", yearFilter);
