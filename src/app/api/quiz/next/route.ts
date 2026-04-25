@@ -22,9 +22,14 @@ export async function GET(req: Request) {
 
   const seen = await db.srsCard.findMany({ where: { userId }, select: { questionId: true } });
   const seenIds = seen.map((s) => s.questionId);
+  const unseenCount = await db.question.count({
+    where: { deleted: false, id: { notIn: seenIds }, ...(year ? { year } : {}), ...(category ? { category } : {}) },
+  });
+  const skip = unseenCount > 0 ? Math.floor(Math.random() * unseenCount) : 0;
   const unseen = await db.question.findMany({
     where: { deleted: false, id: { notIn: seenIds }, ...(year ? { year } : {}), ...(category ? { category } : {}) },
-    take: 20,
+    take: 1,
+    skip,
   });
   if (unseen.length > 0) {
     const q = unseen[Math.floor(Math.random() * unseen.length)];
