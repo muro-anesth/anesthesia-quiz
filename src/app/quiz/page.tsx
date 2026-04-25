@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { SRS_OPTIONS, type SrsRating } from "@/lib/srs";
 
@@ -314,6 +314,29 @@ export default function QuizPage() {
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
   const [years, setYears] = useState<string[]>([]);
+  const [seEnabled, setSeEnabled] = useState(true);
+  const [bgmEnabled, setBgmEnabled] = useState(false);
+  const [bgmTrack, setBgmTrack] = useState<"1"|"2"|"3">("1");
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  function playSoundSE(type: "click" | "correct" | "incorrect") {
+    if (!seEnabled) return;
+    playSound(type);
+  }
+
+  useEffect(() => {
+    if (bgmEnabled) {
+      if (!bgmRef.current || bgmRef.current.src !== window.location.origin + `/sounds/bgm${bgmTrack}.mp3`) {
+        if (bgmRef.current) { bgmRef.current.pause(); bgmRef.current = null; }
+        const a = new Audio(`/sounds/bgm${bgmTrack}.mp3`);
+        a.loop = true;
+        a.volume = 0.3;
+        a.play().catch(() => {});
+        bgmRef.current = a;
+      }
+    } else {
+      if (bgmRef.current) { bgmRef.current.pause(); bgmRef.current = null; }
+    }
+  }, [bgmEnabled, bgmTrack]);
   const [displayOrder, setDisplayOrder] = useState<ChoiceKey[]>(["a","b","c","d","e"]);
 
   function shuffleChoices() {
@@ -387,7 +410,7 @@ useEffect(() => {
     setSelected(choices);
     setIsCorrect(correct);
     setPhase("answered");
-    playSound(correct ? "correct" : "incorrect");
+    playSoundSE(correct ? "correct" : "incorrect");
     setStats((s) => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
   }
 
@@ -520,6 +543,38 @@ useEffect(() => {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
+          </div>
+
+          {/* SE設定 */}
+          <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:12 }}>効果音（SE）</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:14, color:"#b8cfe0" }}>SE {seEnabled ? "オン" : "オフ"}</span>
+              <div onClick={() => setSeEnabled(v => !v)} style={{ width:44, height:24, borderRadius:12, background:seEnabled ? "#0ea5e9" : "rgba(255,255,255,0.1)", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                <div style={{ position:"absolute", top:2, left:seEnabled ? 22 : 2, width:20, height:20, borderRadius:10, background:"#fff", transition:"left 0.2s" }}/>
+              </div>
+            </div>
+          </div>
+
+          {/* BGM設定 */}
+          <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:12 }}>BGM</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <span style={{ fontSize:14, color:"#b8cfe0" }}>BGM {bgmEnabled ? "オン" : "オフ"}</span>
+              <div onClick={() => setBgmEnabled(v => !v)} style={{ width:44, height:24, borderRadius:12, background:bgmEnabled ? "#0ea5e9" : "rgba(255,255,255,0.1)", cursor:"pointer", position:"relative", transition:"background 0.2s" }}>
+                <div style={{ position:"absolute", top:2, left:bgmEnabled ? 22 : 2, width:20, height:20, borderRadius:10, background:"#fff", transition:"left 0.2s" }}/>
+              </div>
+            </div>
+            {bgmEnabled && (
+              <div style={{ display:"flex", gap:8 }}>
+                {(["1","2","3"] as const).map((t) => (
+                  <button key={t} onClick={() => setBgmTrack(t)}
+                    style={{ flex:1, padding:"8px 0", borderRadius:8, border:`1px solid ${bgmTrack===t ? "#0ea5e9" : "rgba(255,255,255,0.1)"}`, background:bgmTrack===t ? "rgba(14,165,233,0.2)" : "transparent", color:bgmTrack===t ? "#38bdf8" : "#4a7fa5", fontSize:13, cursor:"pointer" }}>
+                    BGM {t}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* サインアウト */}
@@ -701,7 +756,7 @@ useEffect(() => {
       {/* ---- Bottom nav ---- */}
       <div style={{ display:"flex", justifyContent:"space-around", padding:"14px 0 20px", borderTop:"1px solid rgba(255,255,255,0.05)", background:"rgba(0,0,0,0.25)" }}>
         {NAV.map((n) => (
-          <div key={n.key} onClick={() => { setNavTab(n.key); playSound("click"); }}
+          <div key={n.key} onClick={() => { setNavTab(n.key); playSoundSE("click"); }}
             style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontSize:10, color:navTab===n.key?"#38bdf8":"#2d4a60", cursor:"pointer", padding:"4px 18px" }}>
             <span style={{ fontSize:20 }}>{n.icon}</span>
             {n.label}
