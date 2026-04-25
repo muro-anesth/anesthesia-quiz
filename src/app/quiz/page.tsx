@@ -364,6 +364,8 @@ export default function QuizPage() {
       const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
       if (data.question) {
+        setQuestion(data.question);
+        setMode(data.mode ?? "new");
         setSessionSeenIds((prev) => {
           const next = [...prev, data.question.id];
           // 全問出題したらリセット
