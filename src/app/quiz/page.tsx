@@ -314,6 +314,7 @@ export default function QuizPage() {
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
   const [years, setYears] = useState<string[]>([]);
+  const [sessionSeenIds, setSessionSeenIds] = useState<number[]>([]);
   const [seEnabled, setSeEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(false);
   const [bgmTrack, setBgmTrack] = useState<"1"|"2"|"3">("1");
@@ -359,11 +360,16 @@ export default function QuizPage() {
     try {
       const params = new URLSearchParams();
       if (yearFilter) params.set("year", yearFilter);
+      if (sessionSeenIds.length > 0) params.set("exclude", sessionSeenIds.join(","));
       const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
       if (data.question) {
-        setQuestion(data.question);
-        setMode(data.mode ?? "new");
+        setSessionSeenIds((prev) => {
+          const next = [...prev, data.question.id];
+          // 全問出題したらリセット
+          if (next.length >= 358) return [];
+          return next;
+        });
         if (data.question.questionType === "single") {
           shuffleChoices();
         } else {
