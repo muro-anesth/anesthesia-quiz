@@ -312,9 +312,9 @@ export default function QuizPage() {
   const [sessionStart] = useState(() => Date.now());
   const [mode, setMode] = useState<"new" | "review">("new");
   const [navTab, setNavTab] = useState<"quiz" | "filter" | "review" | "settings">("quiz");
-  const [yearFilter, setYearFilter] = useState("");
+  const [yearFilters, setYearFilters] = useState<string[]>([]);
   const [years, setYears] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [sessionSeenIds, setSessionSeenIds] = useState<number[]>([]);
   const [seEnabled, setSeEnabled] = useState(true);
@@ -361,8 +361,8 @@ export default function QuizPage() {
     // single タイプのみシャッフル
     try {
       const params = new URLSearchParams();
-      if (yearFilter) params.set("year", yearFilter);
-      if (categoryFilter) params.set("category", categoryFilter);
+      if (yearFilters.length > 0) params.set("years", yearFilters.join(","));
+      if (categoryFilters.length > 0) params.set("categories", categoryFilters.join(","));
       if (sessionSeenIds.length > 0) params.set("exclude", sessionSeenIds.join(","));
       const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
@@ -388,7 +388,7 @@ export default function QuizPage() {
     } catch {
       setPhase("empty");
     }
-  }, [yearFilter, categoryFilter]);
+  }, [yearFilters, categoryFilters]);
 
 useEffect(() => {
     fetch("/api/quiz/years")
@@ -547,31 +547,43 @@ useEffect(() => {
 
           {/* 年度フィルター */}
           <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>年度で絞り込む</div>
-            <select onChange={(e) => setYearFilter(e.target.value)} value={yearFilter}
-              style={{ width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
-              <option value="">すべての年度</option>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, color:"#4a7fa5" }}>年度</div>
+              <button onClick={() => setYearFilters([])} style={{ fontSize:11, color:"#4a7fa5", background:"transparent", border:"none", cursor:"pointer" }}>
+                すべて解除
+              </button>
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
               {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <div key={y} onClick={() => setYearFilters(prev => prev.includes(y) ? prev.filter(x => x !== y) : [...prev, y])}
+                  style={{ padding:"6px 14px", borderRadius:20, fontSize:13, cursor:"pointer", border:`1px solid ${yearFilters.includes(y) ? "#0ea5e9" : "rgba(255,255,255,0.1)"}`, background:yearFilters.includes(y) ? "rgba(14,165,233,0.2)" : "transparent", color:yearFilters.includes(y) ? "#38bdf8" : "#4a7fa5" }}>
+                  {yearFilters.includes(y) ? "✓ " : ""}{y}
+                </div>
               ))}
-            </select>
+            </div>
           </div>
 
           {/* ジャンルフィルター */}
           <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>ジャンルで絞り込む</div>
-            <select onChange={(e) => setCategoryFilter(e.target.value)} value={categoryFilter}
-              style={{ width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
-              <option value="">すべてのジャンル</option>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={{ fontSize:13, color:"#4a7fa5" }}>ジャンル</div>
+              <button onClick={() => setCategoryFilters([])} style={{ fontSize:11, color:"#4a7fa5", background:"transparent", border:"none", cursor:"pointer" }}>
+                すべて解除
+              </button>
+            </div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
               {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <div key={c} onClick={() => setCategoryFilters(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                  style={{ padding:"6px 14px", borderRadius:20, fontSize:13, cursor:"pointer", border:`1px solid ${categoryFilters.includes(c) ? "#0ea5e9" : "rgba(255,255,255,0.1)"}`, background:categoryFilters.includes(c) ? "rgba(14,165,233,0.2)" : "transparent", color:categoryFilters.includes(c) ? "#38bdf8" : "#4a7fa5" }}>
+                  {categoryFilters.includes(c) ? "✓ " : ""}{c}
+                </div>
               ))}
-            </select>
+            </div>
           </div>
 
-          {/* 選択内容の確認と開始ボタン */}
+          {/* 選択内容の確認 */}
           <div style={{ background:"rgba(14,165,233,0.1)", borderRadius:12, padding:16, border:"1px solid rgba(14,165,233,0.2)", fontSize:13, color:"#38bdf8" }}>
-            {yearFilter ? `📅 ${yearFilter}` : "📅 すべての年度"} ／ {categoryFilter ? `🏷️ ${categoryFilter}` : "🏷️ すべてのジャンル"}
+            📅 {yearFilters.length > 0 ? yearFilters.join(", ") : "すべての年度"} ／ 🏷️ {categoryFilters.length > 0 ? categoryFilters.join(", ") : "すべてのジャンル"}
           </div>
 
           <button onClick={() => { setSessionSeenIds([]); setNavTab("quiz"); fetchNext(); }}
