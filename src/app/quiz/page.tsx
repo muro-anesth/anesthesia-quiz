@@ -535,11 +535,6 @@ useEffect(() => {
         </div>
       )}
 
-{/* ---- Stats ---- */}
-      {navTab === "stats" && phase !== "summary" && (
-        <StatsTab />
-      )}
-
 {/* ---- Review ---- */}
       {navTab === "review" && phase !== "summary" && (
         <ReviewTab onStart={() => setNavTab("quiz")} />
@@ -580,7 +575,9 @@ useEffect(() => {
           </div>
 
           <button onClick={() => { setSessionSeenIds([]); setNavTab("quiz"); fetchNext(); }}
-            style={{ w
+            style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+            この設定でクイズを始める
+          </button>
 
 {/* ---- Settings ---- */}
       {navTab === "settings" && phase !== "summary" && (
