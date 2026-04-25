@@ -82,8 +82,17 @@ async function seedFromFile(jsonPath: string): Promise<{ upserted: number; skipp
       continue;
     }
 
+    // subitems がある場合は stem に組み込む
+    let stem = q.stem;
+    if (q.subitems && Object.keys(q.subitems).length > 0) {
+      const subText = Object.entries(q.subitems)
+        .map(([k, v]) => `（${k}）${v}`)
+        .join(" ");
+      stem = `${stem} ${subText}`;
+    }
+
     // X2タイプ判定（問題文に「2つ選べ」「二つ選べ」を含む）
-    const isX2 = /2つ選べ|二つ選べ|2つ選ぶ|二つ選ぶ/.test(q.stem);
+    const isX2 = /2つ選べ|二つ選べ|2つ選ぶ|二つ選ぶ/.test(stem);
     const qtype = isX2 ? "x2" : (q.question_type ?? (q.is_image_question ? "image_answers" : "single"));
 
     await db.question.upsert({
@@ -92,7 +101,7 @@ async function seedFromFile(jsonPath: string): Promise<{ upserted: number; skipp
         qnum: q.qnum,
         year,
         category: guessCategory(q.stem),
-        stem: q.stem,
+        stem: stem,
         choiceA: q.choices.a,
         choiceB: q.choices.b,
         choiceC: q.choices.c,
@@ -106,7 +115,7 @@ async function seedFromFile(jsonPath: string): Promise<{ upserted: number; skipp
         deleted: false,
       },
       update: {
-        stem: q.stem,
+        stem: stem,
         choiceA: q.choices.a,
         choiceB: q.choices.b,
         choiceC: q.choices.c,
