@@ -375,7 +375,6 @@ useEffect(() => {
 
   function handleSelect(ch: ChoiceKey) {
     if (phase !== "question" || !question) return;
-    playSound("click");
     const isX2 = question.questionType === "x2";
 
     if (isX2) {
@@ -712,6 +711,7 @@ useEffect(() => {
       <div style={{ display:"flex", justifyContent:"space-around", padding:"14px 0 20px", borderTop:"1px solid rgba(255,255,255,0.05)", background:"rgba(0,0,0,0.25)" }}>
         {NAV.map((n) => (
           <div key={n.key} onClick={() => setNavTab(n.key)}
+            onClick={() => playSound("click")}
             style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontSize:10, color:navTab===n.key?"#38bdf8":"#2d4a60", cursor:"pointer", padding:"4px 18px" }}>
             <span style={{ fontSize:20 }}>{n.icon}</span>
             {n.label}
