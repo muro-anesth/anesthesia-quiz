@@ -20,6 +20,8 @@ function LoginForm() {
       redirect: false,
     });
     if (res?.ok) {
+      const audio = new Audio("/sounds/entry.mp3");
+      audio.play().catch(() => {});
       router.push("/quiz");
     } else {
       setError("メールアドレスまたはパスワードが違います");
