@@ -87,8 +87,8 @@ async function seedFromFile(jsonPath: string): Promise<{ upserted: number; skipp
     if (q.subitems && Object.keys(q.subitems).length > 0) {
       const subText = Object.entries(q.subitems)
         .map(([k, v]) => `（${k}）${v}`)
-        .join(" ");
-      stem = `${stem} ${subText}`;
+        .join("\n");
+      stem = `${stem}\n${subText}`;
     }
 
     // X2タイプ判定（問題文に「2つ選べ」「二つ選べ」を含む）

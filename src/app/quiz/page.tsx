@@ -576,7 +576,7 @@ useEffect(() => {
 
           {/* Question card */}
           <div style={{ margin:"0 16px 14px", background:"#111f36", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:18 }}>
-            <div style={{ fontSize:15, lineHeight:1.75, fontWeight:500, marginBottom: question.stem.includes("（") ? 14 : 0 }}>
+            <div style={{ fontSize:15, lineHeight:1.75, fontWeight:500, marginBottom: question.stem.includes("（") ? 14 : 0, whiteSpace:"pre-wrap" }}>
               {question.stem}
             </div>
             {/* 画像 */}
