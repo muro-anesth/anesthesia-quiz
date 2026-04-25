@@ -54,6 +54,38 @@ function getChoiceText(q: Question, ch: ChoiceKey): string {
   return map[ch];
 }
 
+function playSound(type: "click" | "correct" | "incorrect") {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === "click") {
+      osc.frequency.value = 600;
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else if (type === "correct") {
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } else {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    }
+  } catch {}
+}
+
 function normalize(s: string) { return s.split("").sort().join(""); }
 
 function isAnswerCorrect(q: Question, selected: string[]) {
@@ -343,6 +375,7 @@ useEffect(() => {
 
   function handleSelect(ch: ChoiceKey) {
     if (phase !== "question" || !question) return;
+    playSound("click");
     const isX2 = question.questionType === "x2";
 
     if (isX2) {
@@ -364,6 +397,7 @@ useEffect(() => {
     setSelected(choices);
     setIsCorrect(correct);
     setPhase("answered");
+    playSound(correct ? "correct" : "incorrect");
     setStats((s) => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
   }
 
