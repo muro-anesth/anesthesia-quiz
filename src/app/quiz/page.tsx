@@ -311,9 +311,11 @@ export default function QuizPage() {
   const [stats, setStats] = useState({ correct: 0, total: 0 });
   const [sessionStart] = useState(() => Date.now());
   const [mode, setMode] = useState<"new" | "review">("new");
-  const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
+  const [navTab, setNavTab] = useState<"quiz" | "filter" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
   const [years, setYears] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [sessionSeenIds, setSessionSeenIds] = useState<number[]>([]);
   const [seEnabled, setSeEnabled] = useState(true);
   const [bgmEnabled, setBgmEnabled] = useState(false);
@@ -360,6 +362,7 @@ export default function QuizPage() {
     try {
       const params = new URLSearchParams();
       if (yearFilter) params.set("year", yearFilter);
+      if (categoryFilter) params.set("category", categoryFilter);
       if (sessionSeenIds.length > 0) params.set("exclude", sessionSeenIds.join(","));
       const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
@@ -385,12 +388,18 @@ export default function QuizPage() {
     } catch {
       setPhase("empty");
     }
-  }, [yearFilter]);
+  }, [yearFilter, categoryFilter]);
 
 useEffect(() => {
     fetch("/api/quiz/years")
       .then((r) => r.json())
       .then((d) => setYears(d.years ?? []));
+  }, []);
+
+useEffect(() => {
+    fetch("/api/quiz/categories")
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories ?? []));
   }, []);
 
   useEffect(() => { fetchNext(); }, [fetchNext]);
@@ -494,7 +503,7 @@ useEffect(() => {
 
   const NAV = [
     { key: "quiz" as const, icon: "📋", label: "クイズ" },
-    { key: "stats" as const, icon: "📊", label: "成績" },
+    { key: "filter" as const, icon: "🎯", label: "問題選択" },
     { key: "review" as const, icon: "🔁", label: "復習" },
     { key: "settings" as const, icon: "⚙️", label: "設定" },
   ];
@@ -536,12 +545,12 @@ useEffect(() => {
         <ReviewTab onStart={() => setNavTab("quiz")} />
       )}
 
-{/* ---- Settings ---- */}
-      {navTab === "settings" && phase !== "summary" && (
+{/* ---- Filter ---- */}
+      {navTab === "filter" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24 }}>
-          <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:8 }}>設定</div>
+          <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:8 }}>問題選択</div>
 
-          {/* 年度絞り込み */}
+          {/* 年度フィルター */}
           <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>年度で絞り込む</div>
             <select onChange={(e) => setYearFilter(e.target.value)} value={yearFilter}
@@ -552,6 +561,32 @@ useEffect(() => {
               ))}
             </select>
           </div>
+
+          {/* ジャンルフィルター */}
+          <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:13, color:"#4a7fa5", marginBottom:10 }}>ジャンルで絞り込む</div>
+            <select onChange={(e) => setCategoryFilter(e.target.value)} value={categoryFilter}
+              style={{ width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:"#e2eaf4", fontSize:14, outline:"none" }}>
+              <option value="">すべてのジャンル</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 選択内容の確認と開始ボタン */}
+          <div style={{ background:"rgba(14,165,233,0.1)", borderRadius:12, padding:16, border:"1px solid rgba(14,165,233,0.2)", fontSize:13, color:"#38bdf8" }}>
+            {yearFilter ? `📅 ${yearFilter}` : "📅 すべての年度"} ／ {categoryFilter ? `🏷️ ${categoryFilter}` : "🏷️ すべてのジャンル"}
+          </div>
+
+          <button onClick={() => { setSessionSeenIds([]); setNavTab("quiz"); fetchNext(); }}
+            style={{ w
+
+{/* ---- Settings ---- */}
+      {navTab === "settings" && phase !== "summary" && (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24 }}>
+          <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:8 }}>設定</div>
+          <StatsTab />
 
           {/* SE設定 */}
           <div style={{ background:"#111f36", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.07)" }}>
