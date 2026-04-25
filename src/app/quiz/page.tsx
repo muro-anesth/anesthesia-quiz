@@ -578,8 +578,10 @@ useEffect(() => {
             style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>
             この設定でクイズを始める
           </button>
+        </div>
+      )}
 
-{/* ---- Settings ---- */}
+      {/* ---- Settings ---- */}
       {navTab === "settings" && phase !== "summary" && (
         <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16, padding:24 }}>
           <div style={{ fontSize:18, fontWeight:700, color:"#e2eaf4", marginBottom:8 }}>設定</div>
