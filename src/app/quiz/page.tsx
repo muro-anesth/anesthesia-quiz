@@ -291,6 +291,16 @@ export default function QuizPage() {
   const [navTab, setNavTab] = useState<"quiz" | "stats" | "review" | "settings">("quiz");
   const [yearFilter, setYearFilter] = useState("");
   const [years, setYears] = useState<string[]>([]);
+  const [displayOrder, setDisplayOrder] = useState<ChoiceKey[]>(["a","b","c","d","e"]);
+
+  function shuffleChoices() {
+    const arr: ChoiceKey[] = ["a","b","c","d","e"];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setDisplayOrder(arr);
+  }
   const { data: session } = useSession();
 
   const fetchNext = useCallback(async () => {
@@ -299,6 +309,7 @@ export default function QuizPage() {
     setShowExp(false);
     setExplanation(null);
     setExpLoading(false);
+    shuffleChoices();
     try {
       const params = new URLSearchParams();
 if (yearFilter) params.set("year", yearFilter);
@@ -573,7 +584,7 @@ useEffect(() => {
 
           {/* Choices */}
           <div style={{ display:"flex", flexDirection:"column", gap:8, padding:"0 16px 14px" }}>
-            {CHOICE_KEYS.map((ch) => {
+            {displayOrder.map((ch) => {
               const text = getChoiceText(question, ch);
               const img = optionImages.find((f) => f.includes(`_${ch}.`) || f === `q${String(question.qnum).padStart(2,"0")}_${ch}.png`);
               return (
