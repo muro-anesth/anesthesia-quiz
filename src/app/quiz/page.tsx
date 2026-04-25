@@ -310,7 +310,7 @@ export default function QuizPage() {
     setExplanation(null);
     setExpLoading(false);
     // single タイプのみシャッフル
-    if (data.question?.questionType === "single") {
+    if (question?.questionType === "single") {
       shuffleChoices();
     } else {
       setDisplayOrder(["a","b","c","d","e"]);
