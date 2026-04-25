@@ -1,0 +1,1387 @@
+{
+  "year": "2023b",
+  "source_pdf": "answer2023b.pdf",
+  "source_xlsx": "PDF直接抽出",
+  "questions": [
+    {
+      "qnum": 1,
+      "stem": "術中心停止について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "院内心停止より蘇生率が低い。",
+        "2": "速やかに胸骨圧迫を開始する。",
+        "3": "心肺蘇生中は過換気を避ける。",
+        "4": "若年健常者は脊髄くも膜下麻酔関連心停止の危険因子である。",
+        "5": "無脈性心室頻拍に対して初回電気ショック実施後速やかにアドレナリンを投与する。"
+      }
+    },
+    {
+      "qnum": 2,
+      "stem": "周術期のアナフィラキシーについて正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "治療の第一選択はアドレナリンである。",
+        "2": "血漿トリプターゼ値は診断に有用である。",
+        "3": "リスクファクターに頻回手術の既往がある。",
+        "4": "小児の初期症状は循環虚脱であることが多い。",
+        "5": "発症時期としては全身麻酔導入の数時間後に多い。"
+      }
+    },
+    {
+      "qnum": 3,
+      "stem": "空調設備について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "ICUは清浄度クラスIIIである。",
+        "2": "清浄度クラスVの室内圧は陽圧である。",
+        "3": "手術手洗いコーナーは清浄度クラスIVである。",
+        "4": "既滅菌材料を展開する部屋は清浄度クラスIIである。",
+        "5": "HEPAフィルタを使用した垂直層流方式は清浄度クラスIである。"
+      }
+    },
+    {
+      "qnum": 4,
+      "stem": "安全管理技術について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "医療機器の購入選定は医師と看護師で行う。",
+        "2": "故障率曲線において偶発故障期間が最も故障率が高い。",
+        "3": "日常点検には始業時点検，使用中点検，終業時点検がある。",
+        "4": "日常点検および定期点検を行った際には報告書を3年間保管する。",
+        "5": "定期点検では点検年月日と次回点検予定を記載した定期点検済証を機器に貼付する。"
+      }
+    },
+    {
+      "qnum": 5,
+      "stem": "誤っているのはどれか。",
+      "choices": {
+        "a": "シリンジポンプでは必ず早送りをしてから使用する。",
+        "b": "電動油圧式の手術台は使用前に固定されているか確認する。",
+        "c": "輸液ポンプでは必ずクレンメを閉塞してから前面ドアの開錠を行う。",
+        "d": "シリンジポンプは輸液ポンプと同様に大量の薬液投与が可能である。",
+        "e": "輸液ポンプをコントロールする方法としては滴下制御型と流量制御型の2種類がある。"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 6,
+      "stem": "成人のアナフィラキシーショック時におけるアドレナリン投与法はどれか。",
+      "choices": {
+        "a": "0.1〜0.2 mg 皮下投与",
+        "b": "0.1〜0.2 mg 筋肉内投与",
+        "c": "0.3〜0.5 mg 筋肉内投与",
+        "d": "0.3〜0.5 mg 静脈内投与",
+        "e": "0.6〜1.0 mg 静脈内投与"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 7,
+      "stem": "硬膜外麻酔の禁忌はどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "敗血症",
+        "2": "PT-INR 2",
+        "3": "非協力的な患者",
+        "4": "アスピリンを内服中",
+        "5": "血小板数12.0×10⁴/μL"
+      }
+    },
+    {
+      "qnum": 8,
+      "stem": "呼気終末二酸化炭素分圧を上昇させる因子はどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "高体温",
+        "2": "過換気",
+        "3": "肺塞栓症",
+        "4": "閉塞性肺障害",
+        "5": "心拍出量増加"
+      }
+    },
+    {
+      "qnum": 9,
+      "stem": "正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "低体温ではPaCO2は上昇する。",
+        "2": "二酸化炭素は酸素より拡散能が低い。",
+        "3": "PaO2＜60 mmHgの状態は呼吸不全である。",
+        "4": "成人の解剖学的死腔はおよそ150 mLである。",
+        "5": "健常者の立位における換気血流比は肺尖部で最も低い。"
+      }
+    },
+    {
+      "qnum": 10,
+      "stem": "手術中に使用する色素とその目的の組み合わせについて誤っているのはどれか。",
+      "choices": {
+        "a": "メチレンブルー…甲状腺の染色",
+        "b": "インドシアニングリーン…脳血管の造影",
+        "c": "インジゴカルミン…尿管損傷の確認",
+        "d": "パテントブルー…各種癌リンパ管造影",
+        "e": "ピオクタニンブルー…手術部位のマーキング"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 11,
+      "stem": "正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "スキサメトニウムは眼内圧を上昇させる。",
+        "2": "スキサメトニウムは筋線維束攣縮を生じさせる。",
+        "3": "スガマデクスはロクロニウムの筋弛緩作用に拮抗する。",
+        "4": "ネオスチグミンはスキサメトニウムの筋弛緩作用に拮抗する。",
+        "5": "ロクロニウムは血漿アセチルコリンエステラーゼにより分解される。"
+      }
+    },
+    {
+      "qnum": 12,
+      "stem": "欠乏した場合にAPTTが正常でPTが延長する凝固因子はどれか。",
+      "choices": {
+        "a": "第V因子",
+        "b": "第VII因子",
+        "c": "第VIII因子",
+        "d": "第IX因子",
+        "e": "第XI因子"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 13,
+      "stem": "TCIポンプで設定する項目はどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "体重",
+        "2": "身長",
+        "3": "性別",
+        "4": "体温",
+        "5": "目標濃度"
+      }
+    },
+    {
+      "qnum": 14,
+      "stem": "原発性アルドステロン症で認められるのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "高血圧",
+        "2": "尿濃縮障害",
+        "3": "アシドーシス",
+        "4": "高カリウム血症",
+        "5": "高ナトリウム血症"
+      }
+    },
+    {
+      "qnum": 15,
+      "stem": "新生児に関して正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "網膜の成熟は妊娠42〜44週である。",
+        "2": "動脈管は早産児ほど閉鎖が遅延しやすい。",
+        "3": "静脈圧上昇は脳室内出血の危険因子となる。",
+        "4": "赤血球の異常により呼吸促迫症候群が起こる。",
+        "5": "新生児遷延性肺高血圧では左右シャントが起こる。"
+      }
+    },
+    {
+      "qnum": 16,
+      "stem": "危機的出血への対応として誤っているのはどれか。",
+      "choices": {
+        "a": "静脈路の確保を行う。",
+        "b": "血液製剤を確保する。",
+        "c": "コマンダーを決定する。",
+        "d": "マンパワーを確保する。",
+        "e": "血液型不明時はAB型の赤血球を使う。"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 17,
+      "stem": "周術期深部静脈血栓症の高リスク手術はどれか。",
+      "choices": {
+        "a": "脊椎手術",
+        "b": "股関節全置換術",
+        "c": "婦人科良性疾患手術",
+        "d": "脳腫瘍以外の開頭術",
+        "e": "40歳未満の外科大手術"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 18,
+      "stem": "輸血について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "回収式自己血輸血には血小板が含まれる。",
+        "2": "貯血式自己血は採取後に低温で保存される。",
+        "3": "赤血球液を急速に輸血する場合，加温器が必要である。",
+        "4": "MSBOSでは交差適合試験を術前に実施し必要輸血量を確保する。",
+        "5": "等容積性血液希釈法による自己血輸血では凝固因子が含まれない。"
+      }
+    },
+    {
+      "qnum": 19,
+      "stem": "作用を拮抗できる薬剤はどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "アスピリン",
+        "2": "クロピドグレル",
+        "3": "ダビガトラン",
+        "4": "ヘパリン",
+        "5": "ワルファリン"
+      }
+    },
+    {
+      "qnum": 20,
+      "stem": "正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "褐色細胞腫摘出後は高血圧が生じやすい。",
+        "2": "甲状腺摘出術の合併症には声帯麻痺がある。",
+        "3": "副腎皮質腫瘍の摘出後には副腎皮質ステロイドを補充する。",
+        "4": "成長ホルモン産生腫瘍患者では巨舌による気道確保困難に注意する。",
+        "5": "未治療のBasedow病患者の甲状腺摘出術では異常低体温に注意する。"
+      }
+    },
+    {
+      "qnum": 21,
+      "stem": "術中高血圧の原因となるのはどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "緊張性気胸",
+        "2": "頭蓋内圧低下",
+        "3": "アナフィラキシー",
+        "4": "高二酸化炭素血症",
+        "5": "ターニケット遮断時間延長"
+      }
+    },
+    {
+      "qnum": 22,
+      "stem": "術後せん妄について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "術後痛はリスク因子である。",
+        "2": "透析患者はハイリスクである。",
+        "3": "数時間から数日で急速に発症する。",
+        "4": "ベンゾジアゼピン系薬剤はせん妄治療効果を有する。",
+        "5": "「過活動型せん妄」は「低活動型せん妄」より予後が不良である。"
+      }
+    },
+    {
+      "qnum": 23,
+      "stem": "術後痛管理について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "術後痛は通常手術翌日が最も強い。",
+        "2": "術後痛の評価に適したツールはない。",
+        "3": "オピオイドの副作用は術後の早期回復を妨げる。",
+        "4": "PCA使用時でも副作用の発現には注意が必要である。",
+        "5": "複数の投与経路や異なる作用機序の薬剤を組み合わせることが効果的である。"
+      }
+    },
+    {
+      "qnum": 24,
+      "stem": "悪性高熱症の症状で誤っているのはどれか。",
+      "choices": {
+        "a": "開口障害",
+        "b": "高カリウム血症",
+        "c": "ミオグロビン尿",
+        "d": "38.8℃以上の高体温",
+        "e": "呼気終末二酸化炭素分圧の低下"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 25,
+      "stem": "成人患者の術後悪心・嘔吐の予防効果がないのはどれか。",
+      "choices": {
+        "a": "オンダンセトロン",
+        "b": "デキサメタゾン",
+        "c": "ドロペリドール",
+        "d": "ファモチジン",
+        "e": "メトクロプラミド"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 26,
+      "stem": "術後合併症と原因の組み合わせで正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "低血圧…尿閉",
+        "2": "気道閉塞…咽頭閉塞",
+        "3": "不整脈…電解質異常",
+        "4": "低酸素血症…肺塞栓症",
+        "5": "高血圧…血管内容量の不足"
+      }
+    },
+    {
+      "qnum": 27,
+      "stem": "誤っているのはどれか。",
+      "choices": {
+        "a": "電子タバコは術前禁煙の必要がある。",
+        "b": "加熱式タバコは従来型のタバコより健康被害が少ない。",
+        "c": "新型タバコは加熱式タバコと電子タバコに分類される。",
+        "d": "ニコチン非含有電子タバコでは多くの有害物質が発生している。",
+        "e": "加熱式タバコの使用者は保険診療による禁煙治療の対象である。"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 28,
+      "stem": "術後イレウスを起こしやすいのはどれか。",
+      "choices": {
+        "a": "オピオイド",
+        "b": "局所麻酔薬",
+        "c": "抗ウイルス薬",
+        "d": "抗てんかん薬",
+        "e": "抗アレルギー薬"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 29,
+      "stem": "薬剤師の業務で誤っているのはどれか。",
+      "choices": {
+        "a": "調剤",
+        "b": "処方",
+        "c": "服薬指導",
+        "d": "副作用のモニタリング",
+        "e": "薬物療法プロトコルの提案"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 30,
+      "stem": "薬剤ラベルのカラーコード（薬効別カラーコード）について正しいのはどれか。",
+      "choices": {
+        "a": "昇圧剤…Warm Red",
+        "b": "局所麻酔薬…Grey 401",
+        "c": "オピオイド…Orange 151",
+        "d": "筋弛緩薬…Violet 256",
+        "e": "ベンゾジアゼピン…Blue 297"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 31,
+      "stem": "筋弛緩薬について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "ダントロレンは生理食塩水で希釈する。",
+        "2": "ロクロニウムは脱分極性筋弛緩薬である。",
+        "3": "スキサメトニウムでは高ナトリウム血症に注意する。",
+        "4": "ロクロニウムの効果発現時間は成人で1〜1.5分である。",
+        "5": "ロクロニウムは水溶液製剤のため用時溶解不要である。"
+      }
+    },
+    {
+      "qnum": 32,
+      "stem": "図に中心静脈圧波形を示す。図1は正常波形，図2は患者の波形である。患者の病態はどれか。",
+      "choices": {
+        "a": "心房細動",
+        "b": "三尖弁狭窄",
+        "c": "三尖弁逆流",
+        "d": "心タンポナーデ",
+        "e": "右室コンプライアンス低下"
+      },
+      "answer": "c",
+      "is_image_question": true,
+      "deleted": false,
+      "main_image": "q32.png",
+      "option_images": [],
+      "notes": [],
+      "question_type": "image_only",
+      "subitems": null
+    },
+    {
+      "qnum": 33,
+      "stem": "電気メスについて正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "300〜5,000 kHz帯の電流をメス先に流す。",
+        "2": "出力時に切開と凝固で異なる音を発する。",
+        "3": "使用直後のメス先電極は放電によって過熱している。",
+        "4": "バイポーラ方式はアクティブ電極を2本使用している。",
+        "5": "切開モードは断続的正弦波電流を用いて組織を切開する。"
+      }
+    },
+    {
+      "qnum": 34,
+      "stem": "正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "区域遮断弁は保守点検や災害発生時使用される。",
+        "2": "送気操作用遮断弁は送気配管設備の保守点検に用いられる。",
+        "3": "余剰ガス排出装置は人体に有害な麻酔ガスを室内に放出する。",
+        "4": "余剰ガス排出装置ではピン方式やシュレーダ方式がとられている。",
+        "5": "マニフォールドとは高圧ガス容器や可搬式超低温液化ガス容器の集合装置のことである。"
+      }
+    },
+    {
+      "qnum": 35,
+      "stem": "混合静脈血酸素飽和度について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "体温が低下すると上昇する。",
+        "2": "測定には近赤外光が用いられる。",
+        "3": "室内気吸入時の正常値は約60%である。",
+        "4": "上大静脈血と下大静脈血が混合した血液の酸素飽和度である。",
+        "5": "動脈血酸素飽和度－酸素消費量/（心拍出量×1.36×ヘモグロビン値）で求められる。"
+      }
+    },
+    {
+      "qnum": 36,
+      "stem": "正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "COVID-19対応の手術室は陽圧にする。",
+        "2": "一般手術室の換気回数は15回/hrである。",
+        "3": "手術室内の湿度は一般的に40〜60%に調節する。",
+        "4": "HEPAフィルタは0.3μmの粒子に対して99.97%以上の濾過効率をもつ。",
+        "5": "輻射式空調システムとは天井面からの空気のみで温度・湿度・清浄度・陽圧をコントロールする。"
+      }
+    },
+    {
+      "qnum": 37,
+      "stem": "心電図にノイズが混入したときの初期対応で誤っているのはどれか。",
+      "choices": {
+        "a": "感度の確認",
+        "b": "電極の確認",
+        "c": "誘導コードの確認",
+        "d": "電気メス出力状況の確認",
+        "e": "モニター本体のアースの確認"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 38,
+      "stem": "内容量3.5 Lの酸素ボンベの圧力計の表示が5 MPaであった。5 L/minの流量で酸素を投与した場合の投与可能時間はおよそ何分か。安全係数を0.8とする。",
+      "choices": {
+        "a": "3",
+        "b": "14",
+        "c": "28",
+        "d": "45",
+        "e": "56"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 39,
+      "stem": "麻酔器の半閉鎖循環式回路について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "a",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "低流量麻酔が可能である。",
+        "2": "患者の呼気を再利用できる。",
+        "3": "吸気回路側に加温加湿器を必要としない。",
+        "4": "APL弁を完全に開放すると閉鎖式回路になる。",
+        "5": "二酸化炭素吸収装置の組み込みを必要としない。"
+      }
+    },
+    {
+      "qnum": 40,
+      "stem": "大量出血時の「死の三徴」はどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "低体温",
+        "2": "尿量低下",
+        "3": "血圧低下",
+        "4": "凝固障害",
+        "5": "代謝性アシドーシス"
+      }
+    },
+    {
+      "qnum": 41,
+      "stem": "人体の電撃反応について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "体表面からの電撃をマクロショックという。",
+        "2": "心臓に直接流れる電撃をミクロショックという。",
+        "3": "体表面に1 mAの電流が流れると行動の自由を失う。",
+        "4": "体表面からビリビリ感じ始める電流は10 mAである。",
+        "5": "心臓に直接0.1 mAの電流が流れると心室細動を誘発する。"
+      }
+    },
+    {
+      "qnum": 42,
+      "stem": "薬剤が静脈外に漏れた場合，組織の壊死を引き起こす危険性が高いのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "ドパミン",
+        "2": "チオペンタール",
+        "3": "レミフェンタニル",
+        "4": "スキサメトニウム",
+        "5": "炭酸水素ナトリウム"
+      }
+    },
+    {
+      "qnum": 43,
+      "stem": "脊髄くも膜下麻酔後頭痛について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "高齢男性に多い。",
+        "2": "頭痛は坐位で軽減する。",
+        "3": "輸液負荷は治療法の1つである。",
+        "4": "重症例では脳神経症状をきたす。",
+        "5": "Quincke針よりもペンシルポイント針で発生率が低い。"
+      }
+    },
+    {
+      "qnum": 44,
+      "stem": "輸血の管理と実施に関して正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "患者への説明と同意を確認する。",
+        "2": "輸血用血液製剤は白血球除去フィルタを使用する。",
+        "3": "手術室内で輸血製剤を保管することは禁じられている。",
+        "4": "看護師は術者・麻酔科医に確認して輸血計画を把握する。",
+        "5": "輸血在庫量や日本赤十字血液センターからの供給時間など施設の状況を把握する。"
+      }
+    },
+    {
+      "qnum": 45,
+      "stem": "術後痛が全身に及ぼす影響について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "低血糖",
+        "2": "無気肺",
+        "3": "イレウス",
+        "4": "睡眠障害",
+        "5": "線溶亢進"
+      }
+    },
+    {
+      "qnum": 46,
+      "stem": "全身麻酔（経口挿管）下の気管切開術の周術期管理で正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "手術中は吸入気酸素濃度を100%に保つ。",
+        "2": "入れ替え時には気管チューブを気管切開孔の口側直上まで引き抜く。",
+        "3": "気管切開チューブが気管内に挿入されたことをカプノグラムで確認する。",
+        "4": "術後早期は気管切開チューブの逸脱・迷入により生命の危機に陥る危険性がある。",
+        "5": "術後早期に気管切開チューブの事故抜去が起こった場合，経口再挿管は禁忌である。"
+      }
+    },
+    {
+      "qnum": 47,
+      "stem": "薬剤を用いないせん妄予防法で正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "安静を保つ。",
+        "2": "水分を制限する。",
+        "3": "身体拘束を避ける。",
+        "4": "睡眠環境を整備する。",
+        "5": "最近の話題を話し合う。"
+      }
+    },
+    {
+      "qnum": 48,
+      "stem": "術中麻酔管理領域の周術期特定行為に含まれるのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "橈骨動脈ラインの確保",
+        "2": "人工呼吸器からの離脱",
+        "3": "硬膜外カテーテルの位置の調整",
+        "4": "電解質異常に対する輸液による補正",
+        "5": "経口・経鼻用気管チューブの位置の調整"
+      }
+    },
+    {
+      "qnum": 49,
+      "stem": "非同期の電気的除細動を必要とするのはどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": true,
+      "deleted": false,
+      "main_image": "q49.png",
+      "option_images": [],
+      "notes": [],
+      "question_type": "image_answers",
+      "subitems": null
+    },
+    {
+      "qnum": 50,
+      "stem": "血液型がB型の患者に対して，緊急時に投与可能な血液製剤はどれか。",
+      "choices": {
+        "a": "（1），（2）",
+        "b": "（1），（5）",
+        "c": "（2），（3）",
+        "d": "（3），（4）",
+        "e": "（4），（5）"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "AB型の赤血球液",
+        "2": "AB型の新鮮凍結血漿",
+        "3": "O型の赤血球液",
+        "4": "O型の血小板濃厚液",
+        "5": "O型の新鮮凍結血漿"
+      }
+    },
+    {
+      "qnum": 51,
+      "stem": "周術期口腔機能管理料について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "入院前のみ算定できる。",
+        "2": "肺癌手術で算定できる。",
+        "3": "骨髄移植手術で算定できる。",
+        "4": "心臓血管手術で算定できる。",
+        "5": "手術を実施する病院でのみ算定できる。"
+      }
+    },
+    {
+      "qnum": 52,
+      "stem": "心電図について正しいのはどれか。",
+      "choices": {
+        "a": "I誘導は心筋虚血の検出率が高い。",
+        "b": "II誘導は右腕と右足の電位差を記録する。",
+        "c": "V1誘導は第4肋間，胸骨左縁に電極を装着する。",
+        "d": "V5誘導は第5肋間，前腋窩線上に電極を装着する。",
+        "e": "低周波帯域のフィルターはST部分の波形に影響を与えない。"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 53,
+      "stem": "腸間膜牽引症候群について正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "徐脈を呈する。",
+        "2": "顔面蒼白を呈する。",
+        "3": "急激な血圧低下が生じる。",
+        "4": "プロスタサイクリンの放出が原因である。",
+        "5": "アナフィラキシーショックとの鑑別が必要である。"
+      }
+    },
+    {
+      "qnum": 54,
+      "stem": "ハインリッヒの法則で，10件の重大事故があった際のヒヤリハットの件数で正しいのはどれか。",
+      "choices": {
+        "a": "100",
+        "b": "300",
+        "c": "1,000",
+        "d": "3,000",
+        "e": "10,000"
+      },
+      "answer": "d",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 55,
+      "stem": "非観血的血圧測定で正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "カフ幅が狭くなると血圧が高くなる。",
+        "2": "脱気速度が速すぎると血圧が低くなる。",
+        "3": "カフの巻き方がゆるすぎると血圧が低くなる。",
+        "4": "カフ幅は上腕の径より20%小さいものを使用する。",
+        "5": "カフを巻く位置が心臓の位置より高いと血圧が低くなる。"
+      }
+    },
+    {
+      "qnum": 56,
+      "stem": "医療ガスについて正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "b",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "配管末端器では誤接続防止の構造がとられている。",
+        "2": "個別方式では移動式の医療ガスの供給源を用いる。",
+        "3": "吸入麻酔薬による全身麻酔では余剰ガスは発生しない。",
+        "4": "中央配管方式では酸素ガスの圧力は他のガスよりも低い。",
+        "5": "亜酸化窒素はオゾン層の破壊を引き起こす可能性がある。"
+      }
+    },
+    {
+      "qnum": 57,
+      "stem": "ERASプログラムにおける推奨項目で正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "麻酔前投薬",
+        "2": "消化管前処置の徹底",
+        "3": "不要なドレーンの排除",
+        "4": "術後の胃管留置の廃止",
+        "5": "膀胱カテーテルの留置期間短縮"
+      }
+    },
+    {
+      "qnum": 58,
+      "stem": "SpO2について正しいのはどれか。",
+      "choices": {
+        "a": "動脈血酸素分圧に正比例する。",
+        "b": "90%は動脈血酸素分圧90 mmHgに相当する。",
+        "c": "酸素投与下で100%であれば換気は良好である。",
+        "d": "脊髄くも膜下麻酔中にはモニターする必要はない。",
+        "e": "全ヘモグロビンに対する酸素ヘモグロビンの割合を表す。"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    },
+    {
+      "qnum": 59,
+      "stem": "WHO手術安全チェックリストについて正しいのはどれか。",
+      "choices": {
+        "a": "（1），（2），（3）",
+        "b": "（1），（2），（5）",
+        "c": "（1），（4），（5）",
+        "d": "（2），（3），（4）",
+        "e": "（3），（4），（5）"
+      },
+      "answer": "e",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "combination",
+      "subitems": {
+        "1": "1999年に臨床現場に導入された。",
+        "2": "施設ごとの改変をしてはいけない。",
+        "3": "「麻酔導入前」「皮膚切開前」「手術室退室前」の3つのタイミングで行う。",
+        "4": "患者確認，部位確認は，手術室入室時に可能であれば本人を含めて実施する。",
+        "5": "体内遺残防止には，看護師だけでなく外科医，麻酔科医を含めたチームとして確認する。"
+      }
+    },
+    {
+      "qnum": 60,
+      "stem": "「言葉を発するが会話は成立せず，指示に従うことはできないが疼痛に適切に反応でき，呼びかけにより開眼する患者」のGCS点数はどれか。",
+      "choices": {
+        "a": "15",
+        "b": "13",
+        "c": "11",
+        "d": "9",
+        "e": "7"
+      },
+      "answer": "c",
+      "is_image_question": false,
+      "deleted": false,
+      "main_image": null,
+      "option_images": [],
+      "notes": [],
+      "question_type": "single",
+      "subitems": null
+    }
+  ]
+}
