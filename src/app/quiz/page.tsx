@@ -310,19 +310,19 @@ export default function QuizPage() {
     setExplanation(null);
     setExpLoading(false);
     // single タイプのみシャッフル
-    if (data.question?.questionType === "single") {
-      shuffleChoices();
-    } else {
-      setDisplayOrder(["a","b","c","d","e"]);
-    }
     try {
       const params = new URLSearchParams();
-if (yearFilter) params.set("year", yearFilter);
-const res = await fetch(`/api/quiz/next?${params.toString()}`);
+      if (yearFilter) params.set("year", yearFilter);
+      const res = await fetch(`/api/quiz/next?${params.toString()}`);
       const data = await res.json();
       if (data.question) {
         setQuestion(data.question);
         setMode(data.mode ?? "new");
+        if (data.question.questionType === "single") {
+          shuffleChoices();
+        } else {
+          setDisplayOrder(["a","b","c","d","e"]);
+        }
         setPhase("question");
       } else {
         setQuestion(null);
