@@ -20,6 +20,13 @@ export async function GET(
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
+  // DBに保存済みの解説があれば即返す
+  const existing = await db.explanation.findUnique({ where: { questionId } });
+  if (existing) {
+    return NextResponse.json({ text: existing.body });
+  }
+
+  // なければGeminiで生成してDBに保存
   const q = await db.question.findUnique({ where: { id: questionId } });
   if (!q) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -74,5 +81,15 @@ ${correctTexts}
 
   const data = await geminiRes.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+
+  if (text) {
+    // DBに保存
+    await db.explanation.upsert({
+      where: { questionId },
+      create: { questionId, body: text },
+      update: { body: text },
+    });
+  }
+
   return NextResponse.json({ text });
 }
