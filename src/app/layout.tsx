@@ -4,6 +4,10 @@ import { SessionProvider } from "next-auth/react";
 export const metadata: Metadata = {
   title: "麻酔科クイズ",
   description: "麻酔科専門医試験対策",
+  icons: {
+    apple: "/apple-touch-icon.png",
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
