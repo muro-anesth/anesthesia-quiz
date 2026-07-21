@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KRAFT — Kameda Anesthesia</title>
+  <link rel="icon" type="image/png" href="favicon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KRAFT">
+  <meta name="theme-color" content="#0B1628">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#0B1628;-webkit-text-size-adjust:100%;}
+    select option{background:#1C3557;color:#F0F4FA;}
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef} = React;
+
+// ── FIREBASE INIT ─────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:"AIzaSyBO2T9OuBPJI9WURZwLOtmX21FSSKKC1eg",
+  authDomain:"kameda-kraft.firebaseapp.com",
+  databaseURL:"https://kameda-kraft-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"kameda-kraft",
+  storageBucket:"kameda-kraft.firebasestorage.app",
+  messagingSenderId:"401626121299",
+  appId:"1:401626121299:web:ca2e19196b3c0edea8b2a6",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+const toEmail = id => `${id}@kraft.kameda`;
+
+// ── CONSTANTS ─────────────────────────────────────────────────
+// ブロック種は後でリスト化。現在は「その他」のみ。
+const BLOCK_CATS = ["頭頚部","上肢","胸部","腹部","下肢","その他"];
+const BLOCK_TYPES = [
+  {val:"mxn", cat:"頭頚部", label:"上顎神経"},
+  {val:"ian", cat:"頭頚部", label:"下歯槽神経"},
+  {val:"cpb", cat:"頭頚部", label:"頚神経叢"},
+  {val:"son", cat:"頭頚部", label:"眼窩上神経"},
+  {val:"ion", cat:"頭頚部", label:"眼窩下神経"},
+  {val:"gpn", cat:"頭頚部", label:"舌咽神経"},
+  {val:"sln", cat:"頭頚部", label:"上喉頭神経"},
+  {val:"scp", cat:"頭頚部", label:"頭皮ブロック"},
+  {val:"isb", cat:"上肢",   label:"腕神経叢（斜角筋間）"},
+  {val:"scb", cat:"上肢",   label:"腕神経叢（鎖骨上）"},
+  {val:"icb", cat:"上肢",   label:"腕神経叢（鎖骨下）"},
+  {val:"axb", cat:"上肢",   label:"腕神経叢（腋窩）"},
+  {val:"fab", cat:"上肢",   label:"前腕神経ブロック"},
+  {val:"dgb", cat:"上肢",   label:"指ブロック"},
+  {val:"clv", cat:"上肢",   label:"Clavipectoral"},
+  {val:"pvb", cat:"胸部",   label:"傍脊椎"},
+  {val:"icn", cat:"胸部",   label:"肋間神経"},
+  {val:"pec", cat:"胸部",   label:"Interpectoral"},
+  {val:"sap", cat:"胸部",   label:"SAP"},
+  {val:"qlb", cat:"腹部",   label:"腰方形筋"},
+  {val:"sdc", cat:"腹部",   label:"SEDIC"},
+  {val:"tpl", cat:"腹部",   label:"TAP（lateral）"},
+  {val:"tpp", cat:"腹部",   label:"TAP（posterior）"},
+  {val:"tps", cat:"腹部",   label:"TAP（subcostal）"},
+  {val:"rsb", cat:"腹部",   label:"腹直筋鞘ブロック"},
+  {val:"iih", cat:"腹部",   label:"II/IH"},
+  {val:"fib", cat:"下肢",   label:"腸骨筋膜下"},
+  {val:"png", cat:"下肢",   label:"PENG"},
+  {val:"fnb", cat:"下肢",   label:"大腿神経"},
+  {val:"san", cat:"下肢",   label:"伏在神経"},
+  {val:"onb", cat:"下肢",   label:"閉鎖神経"},
+  {val:"lfc", cat:"下肢",   label:"外側大腿皮神経"},
+  {val:"psb", cat:"下肢",   label:"坐骨（傍仙骨）"},
+  {val:"sgb", cat:"下肢",   label:"坐骨（臀下）"},
+  {val:"pop", cat:"下肢",   label:"坐骨（膝窩）"},
+  {val:"ipk", cat:"下肢",   label:"iPack"},
+  {val:"ppx", cat:"下肢",   label:"Popliteal plexus"},
+  {val:"ank", cat:"下肢",   label:"Ankle"},
+  {val:"pnl", cat:"その他", label:"Penile"},
+  {val:"pud", cat:"その他", label:"陰部神経"},
+  {val:"other",cat:"その他",label:"その他（特記欄に記載）"},
+];
+
+const SITUATIONS = [
+  {val:"awake",   label:"覚醒下"},
+  {val:"sedated", label:"鎮静下"},
+  {val:"ga",      label:"全身麻酔下"},
+];
+
+const CONCENTRATIONS = ["0.2","0.25","0.375","0.5","1"];
+const DRUGS = [
+  {code:"ropivacaine",    ja:"アナペイン（ロピバカイン）",     en:"Ropivacaine"},
+  {code:"levobupivacaine",ja:"ポプスカイン（レボブピバカイン）",en:"Levobupivacaine"},
+  {code:"bupivacaine",    ja:"マーカイン（ブピバカイン）",     en:"Bupivacaine"},
+  {code:"mepivacaine",    ja:"カルボカイン（メピバカイン）",   en:"Mepivacaine"},
+  {code:"lidocaine",      ja:"キシロカイン（リドカイン）",     en:"Lidocaine"},
+];
+const DRUGS_LIST    = DRUGS.map(d=>d.ja);
+const DRUGS_LIST_EN = DRUGS.map(d=>d.en);
+function drugLabel(lang,code){
+  const d = DRUGS.find(d=>d.code===code);
+  if(!d) return code||"—";
+  return lang==="en"?d.en:d.ja;
+}
+const ASPIRATION_OPTS = [
+  {val:"negative",   label:"陰性（血液なし）"},
+  {val:"blood-seen", label:"血液確認 → 修正"},
+  {val:"skipped",    label:"吸引しなかった"},
+];
+const SAFETY_CHECKS = [
+  {key:"consentOk",   label:"神経ブロックの同意取得確認"},
+  {key:"neuroEvalOk", label:"施行前の神経障害評価済み"},
+  {key:"anticoagOk",  label:"抗凝固薬確認"},
+  {key:"noLAAllergy", label:"局所麻酔薬アレルギー確認"},
+];
+const BLOCK_ABBR = {
+  mxn:"MXN", ian:"IAN", cpb:"CPB", son:"SON", ion:"ION",
+  gpn:"GPN", sln:"SLN", scp:"SCP",
+  isb:"ISB", scb:"SCB", icb:"ICB", axb:"AXB",
+  fab:"FAB", dgb:"DGB", clv:"CLV",
+  pvb:"PVB", icn:"ICN", pec:"PEC", sap:"SAP",
+  qlb:"QLB", sdc:"SDC", tpl:"TPL", tpp:"TPP", tps:"TPS",
+  rsb:"RSB", iih:"IIH",
+  fib:"FIB", png:"PNG", fnb:"FNB", san:"SAN", onb:"ONB",
+  lfc:"LFC", psb:"PSB", sgb:"SGB", pop:"POP",
+  ipk:"IPK", ppx:"PPX", ank:"ANK",
+  pnl:"PNL", pud:"PUD", other:"OTH",
+};
+
+const BLOCK_SHORT = {
+  mxn:"上顎", ian:"下歯", cpb:"頚叢", son:"眼上", ion:"眼下",
+  gpn:"舌咽", sln:"喉頭", scp:"頭皮",
+  isb:"斜角", scb:"鎖骨上", icb:"鎖骨下", axb:"腋窩",
+  fab:"前腕", dgb:"指神", clv:"鎖骨",
+  pvb:"傍脊", icn:"肋間", pec:"PEC", sap:"SAP",
+  qlb:"腰方", sdc:"SDC", tpl:"側TAP", tpp:"後TAP", tps:"肋TAP",
+  rsb:"腹直", iih:"IIH",
+  fib:"FICB", png:"PNG", fnb:"大腿", san:"伏在", onb:"閉鎖",
+  lfc:"外皮", psb:"傍仙", sgb:"臀下", pop:"膝窩",
+  ipk:"IPK", ppx:"PPX", ank:"ANK",
+  pnl:"陰茎", pud:"陰部", other:"他",
+};
+// 認定申請可能ブロックを計算
+function getEligibleBlocks(records, certLevels) {
+  const passCounts = {};
+  records.forEach(r=>{
+    if(r.overallResult==="pass" && r.blockType) {
+      passCounts[r.blockType] = (passCounts[r.blockType]||0) + 1;
+    }
+  });
+  return BLOCK_TYPES
+    .filter(bt=>bt.val!=="other")
+    .filter(bt=>(certLevels||{})[bt.val]!=="cert")
+    .filter(bt=>(passCounts[bt.val]||0)>=5)
+    .map(bt=>({...bt, passCount:passCounts[bt.val]}));
+}
+
+
+// ── LANGUAGE SYSTEM ──────────────────────────────────────────
+const LANG_BLOCK_TYPES_EN = {
+  mxn:"Maxillary nerve", ian:"Inferior alveolar nerve", cpb:"Cervical plexus",
+  son:"Supraorbital nerve", ion:"Infraorbital nerve", gpn:"Glossopharyngeal nerve",
+  sln:"Superior laryngeal nerve", scp:"Scalp block",
+  isb:"Brachial plexus (interscalene)", scb:"Brachial plexus (supraclavicular)",
+  icb:"Brachial plexus (infraclavicular)", axb:"Brachial plexus (axillary)",
+  fab:"Forearm nerve block", dgb:"Digital block", clv:"Clavipectoral",
+  pvb:"Paravertebral", icn:"Intercostal nerve", pec:"Interpectoral", sap:"Serratus anterior plane",
+  qlb:"Quadratus lumborum", sdc:"SEDIC", tpl:"TAP (lateral)", tpp:"TAP (posterior)",
+  tps:"TAP (subcostal)", rsb:"Rectus sheath", iih:"Ilioinguinal/Iliohypogastric",
+  fib:"Fascia iliaca (FICB)", png:"PENG", fnb:"Femoral nerve", san:"Saphenous nerve",
+  onb:"Obturator nerve", lfc:"Lateral femoral cutaneous nerve",
+  psb:"Sciatic (parasacral)", sgb:"Sciatic (subgluteal)", pop:"Sciatic (popliteal)",
+  ipk:"iPack", ppx:"Popliteal plexus", ank:"Ankle block", pnl:"Penile block", pud:"Pudendal nerve",
+  other:"Other (specify in notes)",
+};
+// DRUGS_LIST_EN is now generated from DRUGS array above
+const SITUATIONS_EN  = {awake:"Awake", sedated:"Sedated", ga:"Under general anesthesia"};
+const SAFETY_CHECKS_EN = [
+  {key:"consentOk",   label:"Informed consent confirmed"},
+  {key:"neuroEvalOk", label:"Pre-procedure neurological assessment done"},
+  {key:"anticoagOk",  label:"Anticoagulant status checked"},
+  {key:"noLAAllergy", label:"Local anesthetic allergy confirmed absent"},
+];
+const ASPIRATION_OPTS_EN = [
+  {val:"negative",   label:"Negative (no blood)"},
+  {val:"blood-seen", label:"Blood seen → repositioned"},
+  {val:"skipped",    label:"Not performed"},
+];
+const DOPS_ITEMS_EN = [
+  {num:"01",title:"Indication check",            sub:"Appropriate indication and goal identified"},
+  {num:"04",title:"Positioning & sterile technique", sub:"Patient position, sterile field, draping"},
+  {num:"05",title:"Ultrasound image acquisition",sub:"Target nerve/vessel/fascial plane identification"},
+  {num:"06",title:"In-plane / out-of-plane advancement", sub:"Real-time needle tip tracking to target"},
+  {num:"07",title:"Pre-injection aspiration",    sub:"Exclusion of intravascular placement"},
+  {num:"08",title:"Ultrasound confirmation of spread", sub:"Perineural spread, injection pressure feedback"},
+];
+const SCALE_LABELS_EN = {1:"Unsatisfactory (comment required)", 2:"Satisfactory (comment required)", 3:"Excellent"};
+const BLOCK_CATS_EN   = {
+  "頭頚部":"Head & Neck", "上肢":"Upper Limb", "胸部":"Thorax",
+  "腹部":"Abdomen", "下肢":"Lower Limb", "その他":"Other",
+};
+const T = {
+  // Navigation & tabs
+  login:"Login", logout:"Logout", admin:"Admin", back:"←",
+  myAccount:"My Account", changePassword:"Change Password",
+  // List screen tabs
+  tabOwn:"My Cases", tabEval:"Evaluations", tabConfirmed:"Confirmed", tabSearch:"🔍 Search",
+  // Buttons
+  newRecord:"+ New Record", supervisors:"👥 Supervisors",
+  // New record
+  step1Title:"Safety Checklist", step2Title:"Block Record",
+  allChecked:"All checked", proceedToRecord:"Proceed to Block Record →",
+  cancel:"Cancel", saveDraft:"Save Draft", saveCase:"Save Case", saving:"Saving...",
+  // Sections
+  secBlock:"Block & Setup", secEchoPre:"Ultrasound Image (Pre)",
+  secEchoPost:"Ultrasound Image (Post)", secDrug:"Drug",
+  secTechnique:"Technique", secNotes:"Notes",
+  // Fields
+  blockType:"Block type", category:"Category", side:"Side",
+  left:"Left", right:"Right", bilateral:"Bilateral",
+  situation:"Situation", drug:"Drug", concentration:"Concentration (%)",
+  volume:"Volume (mL)", date:"Date", time:"Time",
+  skinInfiltration:"Skin infiltration", lidocaineUsed:"Lidocaine 1% used",
+  approach:"Approach", aspiration:"Aspiration",
+  notes:"Notes / Block name (free text)",
+  // Detail screen
+  tabInfo:"Record", tabDops:"DOPS",
+  caseNum:"Case No.", performer:"Performer", blockLabel:"Block",
+  sideLabel:"Side", situationLabel:"Situation", dateTime:"Date/Time",
+  supervisorLabel:"Supervisor", notRegistered:"Not registered",
+  drugLabel:"Drug", volumeLabel:"Volume", skinLabel:"Skin infiltration",
+  approachLabel:"Approach", aspirationLabel:"Aspiration",
+  specialNotes:"Notes", safetyChecks:"Safety Checklist",
+  echoPreLabel:"Ultrasound (Pre)", echoPostLabel:"Ultrasound (Post)",
+  editRecord:"✏️ Edit Record",
+  // DOPS
+  dopsTitle:"DOPS Score", supervisionLevel:"Supervision Level",
+  directSupervision:"Direct supervision", independence:"Independent performance",
+  certificationExam:"Certification examination",
+  overallResult:"Overall Assessment",
+  goodResult:"✓ GOOD", ngResult:"✗ NG",
+  passResult:"✓ Pass", needsMore:"More cases needed",
+  strengths:"✓ Strengths", improvements:"↑ Areas for improvement",
+  dopsComplete:"Assessment complete",
+  locked:"🔒 Locked",
+  saveDops:"Save DOPS Assessment",
+  noPermission:"You do not have assessment rights for this block",
+  awaitingEval:"Assessment will be entered by supervisor. You can review after completion.",
+  // Admin
+  adminTitle:"Admin Panel",
+  tabTrainees:"Trainees", tabSupervisors:"Supervisors",
+  tabInactive:"Inactive", tabAdd:"Add User",
+  tabData:"Data",
+  totalCases:"Total cases", pendingEval:"Pending", passCount:"Pass",
+  certManagement:"Certification Management",
+  certHint:"Tap to cycle: None → Certified → None",
+  certAll:"Certify All", resetAll:"Reset All",
+  certEligible:"🏆 Eligible for certification",
+  blockCounts:"Block Statistics",
+  allCases:"All Cases",
+  addUser:"Add User", userId:"User ID (alphanumeric)",
+  displayName:"Display Name", initialPassword:"Initial Password (6+ chars)",
+  addUserBtn:"+ Add User", adding:"Adding...",
+  inactive:"Inactive", makeActive:"Restore to Active",
+  moveToInactive:"Move to Inactive",
+  // Search
+  period:"Period", clearPeriod:"Clear period",
+  performer2:"Performer", categoryLabel:"Category",
+  blockTypeLabel:"Block type", hits:"results",
+  csvDownload:"CSV Download",
+  // Supervisors list
+  supervisorsTitle:"Supervisors",
+  supervisorsSub:"Certification status by block",
+  noSupervisors:"No certified supervisors",
+  // Password
+  currentPw:"Current password", newPw:"New password (6+ chars)",
+  confirmPw:"Confirm new password", changePw:"Change Password",
+  changingPw:"Changing...",
+  // Language
+  language:"Language", langJa:"日本語", langEn:"English",
+  // Misc
+  noData:"No records", noEval:"No pending evaluations",
+  noConfirmed:"No confirmed cases",
+  deleteConfirm:"Delete this case?",
+  unlockConfirm:"Unlock this record?",
+  deleteDraftConfirm:"Delete this draft?",
+  draft:"✏️ Draft",
+  lockStatus:"Locked by",
+};
+
+function useT(lang){
+  return (key)=>lang==="en"?(T[key]||key):null;
+}
+function L(lang,enStr,jaStr){return lang==="en"?enStr:jaStr;}
+function blockLabel(lang,val){return lang==="en"?(LANG_BLOCK_TYPES_EN[val]||val):(BLOCK_TYPES.find(b=>b.val===val)?.label||val);}
+function catLabel(lang,cat){return lang==="en"?(BLOCK_CATS_EN[cat]||cat):cat;}
+function sitLabel(lang,val){return lang==="en"?(SITUATIONS_EN[val]||val):(SITUATIONS.find(s=>s.val===val)?.label||val);}
+function aspirLabel(lang,val){return lang==="en"?(ASPIRATION_OPTS_EN.find(o=>o.val===val)?.label||val):(ASPIRATION_OPTS.find(o=>o.val===val)?.label||val);}
+
+const DOPS_ITEMS = [
+  {num:"01",title:"適応確認",                            sub:"ブロックの適応・目的が明確"},
+  {num:"04",title:"ポジショニングと清潔操作",              sub:"体位、sterile technique、ドレーピング"},
+  {num:"05",title:"エコーによる画像描出",                  sub:"目標神経・血管・fascial plane の同定"},
+  {num:"06",title:"In-plane / out-of-plane advancement", sub:"針先リアルタイム追跡、目標部位誘導"},
+  {num:"07",title:"注入前の aspiration",                  sub:"血管内注入の除外"},
+  {num:"08",title:"薬液拡散のエコー確認",                  sub:"神経周囲への広がり、注入圧の感覚"},
+];
+const SCALE_LABELS = {1:"不十分（要コメント）",2:"合格（要コメント）",3:"優秀"};
+const SCALE_COLOR  = {1:"#D55E00",2:"#009E73",3:"#5B8FD4"};
+
+const C = {
+  navy:"#0B1628", navyMid:"#13243F", navyLight:"#1C3557",
+  accent:"#E69F00", accentLight:"#F5C76A",
+  white:"#F0F4FA", muted:"#8BAAC8",
+  green:"#009E73", blue:"#0072B2",
+  purple:"#CC79A7", red:"#D55E00",
+};
+
+// ── FIREBASE HELPERS ──────────────────────────────────────────
+const fbLogin  = (id,pw) => auth.signInWithEmailAndPassword(toEmail(id),pw);
+const fbLogout = ()      => auth.signOut();
+const fbChangeMyPw = (newPw) => auth.currentUser.updatePassword(newPw);
+
+const fbCreateUser = async (id,pw) => {
+  const secondary = firebase.initializeApp(firebaseConfig,`tmp_${Date.now()}`);
+  try {
+    const cred = await secondary.auth().createUserWithEmailAndPassword(toEmail(id),pw);
+    const uid  = cred.user.uid;
+    await secondary.auth().signOut();
+    await secondary.delete();
+    return uid;
+  } catch(e) {
+    try { await secondary.delete(); } catch(_) {}
+    throw e;
+  }
+};
+
+const fbSaveUserMeta    = (uid,meta)       => db.ref(`users/${uid}`).set(meta);
+const fbGetUserMeta     = async (uid)      => (await db.ref(`users/${uid}`).once("value")).val();
+const fbToggleAdmin     = async (uid,val)  => { if(uid==="murouchi")return; await db.ref(`users/${uid}/isAdmin`).set(val||null); };
+const fbSetRole         = async (uid,role) => { await db.ref(`users/${uid}/role`).set(role); };
+const fbUpdateCertLevel = async (uid,bt,lv) => {
+  if(lv===null) await db.ref(`users/${uid}/certLevels/${bt}`).remove();
+  else          await db.ref(`users/${uid}/certLevels/${bt}`).set(lv);
+};
+const fbGetAllUsers = async () => {
+  const snap = await db.ref("users").once("value");
+  const data = snap.val()||{};
+  return Object.entries(data).map(([uid,v])=>({uid,...v}));
+};
+const fbNextCaseNum = async (traineeId,blockType) => {
+  const abbr = BLOCK_ABBR[blockType]||"OTH";
+  const ref  = db.ref(`meta/counters/${traineeId}_${abbr}`);
+  const res  = await ref.transaction(v=>(v||0)+1);
+  return res.snapshot.val();
+};
+const fbFormatCaseNum = (traineeId,blockType,num) => {
+  const abbr = BLOCK_ABBR[blockType]||"OTH";
+  return `${traineeId}-${abbr}-${String(num).padStart(3,"0")}`;
+};
+const fbSaveRecord   = (rec)      => db.ref(`records/${rec.id}`).set(rec);
+const fbUpdateRecord = (id,data)  => db.ref(`records/${id}`).update({...data,updatedAt:new Date().toISOString()});
+const fbGetRecord    = async (id) => (await db.ref(`records/${id}`).once("value")).val();
+
+const toSummary = r => ({
+  id:r.id, caseNum:r.caseNum, trainee:r.trainee, supervisor:r.supervisor,
+  blockType:r.blockType, side:r.side, situation:r.situation,
+  date:r.date, time:r.time,
+  locked:r.locked, dopsComplete:r.dopsComplete, overallResult:r.overallResult,
+  createdAt:r.createdAt, draft:r.draft||false,
+});
+
+// ── APP ───────────────────────────────────────────────────────
+function App() {
+  const [authState,setAuthState] = useState("loading");
+  const [lang,setLang]     = useState("ja");
+  const [session,  setSession]   = useState(null);
+  const [screen,   setScreen]    = useState("list");
+  const [records,  setRecords]   = useState([]);
+  const [detail,   setDetail]    = useState(null);
+  const [toast,    setToast]     = useState("");
+
+  const showToast = useCallback(msg=>{
+    setToast(msg);
+    setTimeout(()=>setToast(""),2500);
+  },[]);
+
+  useEffect(()=>{
+    return auth.onAuthStateChanged(async user=>{
+      if(user){
+        const meta = await fbGetUserMeta(user.uid);
+        if(meta){
+          setSession({uid:user.uid,...meta,certLevels:meta.certLevels||{},isAdmin:!!meta.isAdmin});
+          setLang(meta.lang||"ja");
+          setAuthState("in");
+        } else {
+          await fbLogout();
+          setAuthState("out");
+        }
+      } else {
+        setSession(null);
+        setAuthState("out");
+        setScreen("list");
+      }
+    });
+  },[]);
+
+  useEffect(()=>{
+    if(!session?.uid)return;
+    const ref = db.ref(`users/${session.uid}/certLevels`);
+    const h   = snap=>setSession(prev=>prev?{...prev,certLevels:snap.val()||{}}:prev);
+    ref.on("value",h);
+    return ()=>ref.off("value",h);
+  },[session?.uid]);
+
+  useEffect(()=>{
+    if(authState!=="in")return;
+    const ref = db.ref("records");
+    const h   = snap=>{
+      const data=snap.val()||{};
+      setRecords(Object.values(data).map(toSummary).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)));
+    };
+    ref.on("value",h);
+    return ()=>ref.off("value",h);
+  },[authState]);
+
+  if(authState==="loading") return (
+    <div style={{background:C.navy,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{color:C.muted,fontFamily:"Courier New,monospace",fontSize:12}}>接続中…</div>
+    </div>
+  );
+
+  if(authState==="out") return (
+    <LoginScreen onLogin={async(id,pw)=>{
+      try { await fbLogin(id,pw); }
+      catch(e){
+        const msg = e.code==="auth/user-not-found"?"ユーザーIDが見つかりません"
+          :e.code==="auth/wrong-password"?"パスワードが違います"
+          :e.code==="auth/invalid-credential"?"IDまたはパスワードが違います"
+          :"ログインに失敗しました";
+        throw new Error(msg);
+      }
+    }}/>
+  );
+
+  const handleSelectRecord = async r=>{
+    const full = await fbGetRecord(r.id);
+    setDetail(full);
+    if(full.draft&&full.trainee===session.name){
+      setScreen("new");
+    } else {
+      setScreen("detail");
+    }
+  };
+
+  return (
+    <div>
+      {toast&&(
+        <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",
+          background:C.green,color:C.navy,padding:"10px 20px",fontWeight:"bold",
+          fontSize:13,zIndex:9999,borderRadius:2,boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}}>
+          {toast}
+        </div>
+      )}
+      {screen==="list"&&(
+        <ListScreen
+          session={session} records={records} lang={lang}
+          onNew={()=>setScreen("new")}
+          onSelect={handleSelectRecord}
+          onLogout={fbLogout}
+          onAdmin={()=>setScreen("admin")}
+          onSupervisors={()=>setScreen("supervisors")}
+          onMyPw={()=>setScreen("mypw")}
+        />
+      )}
+      {screen==="new"&&(
+        <NewRecord
+          session={session} lang={lang}
+          draftRec={detail}
+          onDone={()=>{setDetail(null);setScreen("list");}}
+          onCancel={()=>{setDetail(null);setScreen("list");}}
+          showToast={showToast}
+        />
+      )}
+      {screen==="detail"&&detail&&(
+        <DetailScreen
+          rec={detail} lang={lang}
+          session={session}
+          onBack={()=>setScreen("list")}
+          onUpdate={updated=>setDetail(updated)}
+          showToast={showToast}
+          onEdit={r=>{setDetail(r);setScreen("edit");}}
+        />
+      )}
+      {screen==="edit"&&detail&&(
+        <NewRecord
+          session={session}
+          draftRec={{...detail,_isEdit:true}}
+          onDone={()=>{setDetail(null);setScreen("list");}}
+          onCancel={()=>setScreen("detail")}
+          showToast={showToast}
+        />
+      )}
+      {screen==="admin"&&(
+        <AdminScreen
+          session={session} lang={lang}
+          records={records}
+          onBack={()=>setScreen("list")}
+          showToast={showToast}
+          onSelectTrainee={u=>{setDetail(u);setScreen("trainee");}}
+        />
+      )}
+      {screen==="supervisors"&&(
+        <SupervisorsScreen lang={lang} onBack={()=>setScreen("list")}/>
+      )}
+      {screen==="mypw"&&(
+        <MyPwScreen session={session} onBack={()=>setScreen("list")} showToast={showToast} lang={lang} onLangChange={async(l)=>{setLang(l);await db.ref(`users/${session.uid}/lang`).set(l);}}/>
+      )}
+      {screen==="trainee"&&detail&&(
+        <TraineeDetailScreen
+          trainee={detail} lang={lang}
+          records={records}
+          session={session}
+          onBack={()=>setScreen("admin")}
+          onSelect={handleSelectRecord}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+function LoginScreen({onLogin}){
+  const [id,setId]   = useState("");
+  const [pw,setPw]   = useState("");
+  const [err,setErr] = useState("");
+  const [busy,setBusy] = useState(false);
+  const handle = async()=>{
+    if(!id.trim()||!pw){setErr("IDとパスワードを入力してください");return;}
+    setBusy(true);setErr("");
+    try{await onLogin(id.trim(),pw);}
+    catch(e){setErr(e.message);}
+    setBusy(false);
+  };
+  return(
+    <div style={{background:C.navy,minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:"100%",maxWidth:360}}>
+        <div style={{fontSize:56,fontWeight:"bold",color:C.accent,textAlign:"center",letterSpacing:"6px",fontFamily:"Courier New,monospace",marginBottom:10}}>KRAFT</div>
+        <div style={{fontSize:13,textAlign:"center",marginBottom:32,lineHeight:1.8}}>
+          <span style={{color:C.accent,fontWeight:"bold"}}>K</span><span style={{color:C.muted}}>ameda </span>
+          <span style={{color:C.accent,fontWeight:"bold"}}>R</span><span style={{color:C.muted}}>egional </span>
+          <span style={{color:C.accent,fontWeight:"bold"}}>A</span><span style={{color:C.muted}}>nesthesia </span>
+          <span style={{color:C.accent,fontWeight:"bold"}}>F</span><span style={{color:C.muted}}>ellowship </span>
+          <span style={{color:C.accent,fontWeight:"bold"}}>T</span><span style={{color:C.muted}}>raining</span>
+        </div>
+        <Fld label="ユーザーID">
+          <input value={id} onChange={e=>setId(e.target.value)} style={inputSt} autoCapitalize="none" autoComplete="username"/>
+        </Fld>
+        <PwInp label="パスワード" value={pw} onChange={setPw}/>
+        {err&&<div style={{color:C.red,fontSize:12,marginBottom:10}}>{err}</div>}
+        <button onClick={handle} disabled={busy} style={{width:"100%",padding:14,background:busy?C.navyLight:C.accent,color:C.navy,border:"none",fontWeight:"bold",fontSize:15,cursor:busy?"not-allowed":"pointer",marginTop:4}}>
+          {busy?"接続中…":"ログイン"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── LIST ──────────────────────────────────────────────────────
+function ListScreen({session,records,lang,onNew,onSelect,onLogout,onAdmin,onSupervisors,onMyPw}){
+  const isMurouchi = session.id==="murouchi";
+  const isAdmin    = isMurouchi||session.isAdmin||false;
+  const levels     = session.certLevels||{};
+    const ownRecs = records.filter(r=>r.trainee===session.name);
+  const certBlocks = Object.entries(levels).filter(([,v])=>v==="cert").map(([k])=>k);
+  const evalRecs = records.filter(r=>{
+    if(r.draft)return false;
+    if(r.trainee===session.name)return false;
+    if(r.overallResult)return false;
+    if(isAdmin)return true;
+    return certBlocks.includes(r.blockType);
+  });
+  const confirmedRecs = isAdmin?records.filter(r=>r.overallResult&&!r.draft):[];
+
+  const hasCert = isAdmin||Object.values(levels).some(v=>v==="cert");
+  const tabs= isAdmin ? [
+    {key:"eval",      label:lang==="en"?"Evaluations":"評価業務", count:evalRecs.length,      color:C.accent},
+    {key:"own",       label:lang==="en"?"My Cases":"経験症例", count:ownRecs.length,       color:C.blue},
+    {key:"confirmed", label:lang==="en"?"Confirmed":"確定済", count:confirmedRecs.length, color:C.green},
+    {key:"search",    label:lang==="en"?"🔍 Search":"🔍 検索", count:null,                 color:C.muted},
+  ] : hasCert ? [
+    {key:"own",       label:lang==="en"?"My Cases":"経験症例", count:ownRecs.length,       color:C.blue},
+    {key:"eval",      label:lang==="en"?"Evaluations":"評価業務", count:evalRecs.length,      color:C.accent},
+    {key:"search",    label:lang==="en"?"🔍 Search":"🔍 検索", count:null,                 color:C.muted},
+  ] : [
+    {key:"own",       label:lang==="en"?"My Cases":"経験症例", count:ownRecs.length,       color:C.blue},
+    {key:"eval",      label:lang==="en"?"Evaluations":"評価業務", count:evalRecs.length,      color:C.accent},
+    {key:"search",    label:lang==="en"?"🔍 Search":"🔍 検索", count:null,                 color:C.muted},
+  ];
+  const [activeTab,setActiveTab]=useState(isAdmin?"eval":"own");
+  const [searchCat,setSearchCat]=useState("");
+  const [searchBlock,setSearchBlock]=useState("");
+  const [searchFrom,setSearchFrom]=useState("");
+  const [searchTo,setSearchTo]=useState("");
+  const [searchTrainee,setSearchTrainee]=useState("");
+  const searchBase = isAdmin ? records : ownRecs;
+  const searchTrainees = [...new Set(records.map(r=>r.trainee).filter(Boolean))].sort();
+  const filteredRecs = searchBase.filter(r=>{
+    if(searchTrainee && r.trainee!==searchTrainee) return false;
+    if(searchBlock && r.blockType!==searchBlock) return false;
+    if(!searchBlock && searchCat){
+      const bt=BLOCK_TYPES.find(b=>b.val===r.blockType);
+      if(!bt||bt.cat!==searchCat) return false;
+    }
+    if(searchFrom && r.date<searchFrom) return false;
+    if(searchTo   && r.date>searchTo)   return false;
+    return true;
+  });
+  const currentRecs=activeTab==="own"?ownRecs:activeTab==="eval"?evalRecs:activeTab==="confirmed"?confirmedRecs:[];
+
+  return(
+    <Wrap>
+      <div style={{background:C.navyMid,borderBottom:`3px solid ${isMurouchi?C.accent:C.blue}`,padding:"14px 16px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontFamily:"Courier New,monospace",fontSize:9,color:C.accent,letterSpacing:"2px"}}>KRAFT — Kameda Anesthesia</div>
+            <div style={{fontSize:18,fontWeight:"bold",color:C.white,marginTop:2}}>{session.name}</div>
+            <div style={{fontSize:10,color:C.muted}}>{lang==="en"?"Regional Anesthesia Fellowship Training":"Regional Anesthesia Fellowship Training"}</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            {isAdmin&&<button onClick={onAdmin} style={{...outBtn,color:C.purple,borderColor:C.purple}}>{lang==="en"?"Admin":"管理"}</button>}
+            <button onClick={onMyPw} style={{...outBtn,fontSize:16,padding:"6px 10px"}}>👤</button>
+            <button onClick={onLogout} style={outBtn}>{lang==="en"?"Logout":"ログアウト"}</button>
+          </div>
+        </div>
+      </div>
+      <div style={{display:"flex",background:C.navyMid,borderBottom:`1px solid ${C.navyLight}`}}>
+        {tabs.map(t=>(
+          <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{flex:1,padding:"10px 4px",background:"none",border:"none",borderBottom:activeTab===t.key?`3px solid ${t.color}`:`3px solid transparent`,cursor:"pointer",textAlign:"center"}}>
+            <div style={{fontSize:18,fontWeight:"bold",color:t.color,fontFamily:"Courier New,monospace"}}>{t.count}</div>
+            <div style={{fontSize:9,color:activeTab===t.key?t.color:C.muted,fontFamily:"Courier New,monospace"}}>{t.label}</div>
+          </button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+        {(()=>{
+          const eligible = getEligibleBlocks(ownRecs, session.certLevels||{});
+          if(eligible.length===0) return null;
+          return(
+            <div style={{background:`${C.accent}15`,border:`1px solid ${C.accent}40`,padding:"12px 14px",marginBottom:14}}>
+              <div style={{fontSize:10,color:C.accent,fontFamily:"Courier New,monospace",fontWeight:"bold",marginBottom:8}}>🏆 認定申請可能</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {eligible.map(bt=>(
+                  <div key={bt.val} style={{background:`${C.accent}20`,border:`1px solid ${C.accent}`,padding:"5px 10px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:11,fontWeight:"bold",color:C.accent}}>{BLOCK_SHORT[bt.val]||BLOCK_ABBR[bt.val]}</span>
+                    <span style={{fontSize:9,color:C.accentLight}}>{bt.passCount}例PASS</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+        {activeTab==="own"&&(
+          <BlockProgress records={ownRecs} certLevels={session.certLevels||{}} lang={lang}/>
+        )}
+        {activeTab==="search"?(
+          <>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.muted,borderBottom:`1px solid ${C.muted}40`,paddingBottom:5,marginBottom:10}}>{lang==="en"?"Period":"期間"}</div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
+                <input type="date" value={searchFrom} lang={lang==="en"?"en":"ja"} onChange={e=>setSearchFrom(e.target.value)} style={{flex:1,background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:"9px 8px",fontSize:12,outline:"none"}}/>
+                <span style={{color:C.muted,fontSize:12}}>{lang==="en"?"to":"〜"}</span>
+                <input type="date" value={searchTo} lang={lang==="en"?"en":"ja"} onChange={e=>setSearchTo(e.target.value)} style={{flex:1,background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:"9px 8px",fontSize:12,outline:"none"}}/>
+              </div>
+              <button onClick={()=>{setSearchFrom("");setSearchTo("");}} style={{fontSize:11,color:C.muted,background:"none",border:"none",cursor:"pointer",padding:0}}>{lang==="en"?"Clear period":"期間クリア"}</button>
+            </div>
+            {isAdmin&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.muted,borderBottom:`1px solid ${C.muted}40`,paddingBottom:5,marginBottom:10}}>施行者</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {searchTrainees.map(name=>(
+                    <button key={name} onClick={()=>setSearchTrainee(searchTrainee===name?"":name)} style={{padding:"7px 10px",background:searchTrainee===name?`${C.blue}30`:C.navyLight,color:searchTrainee===name?C.blue:C.muted,border:`1px solid ${searchTrainee===name?C.blue:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.muted,borderBottom:`1px solid ${C.muted}40`,paddingBottom:5,marginBottom:10}}>{lang==="en"?"Category":lang==="en"?"Category":"カテゴリ"}</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+                {BLOCK_CATS.map(cat=>(
+                  <button key={cat} onClick={()=>{setSearchCat(searchCat===cat?"":cat);setSearchBlock("");}} style={{padding:"7px 11px",background:searchCat===cat?`${C.blue}30`:C.navyLight,color:searchCat===cat?C.blue:C.muted,border:`1px solid ${searchCat===cat?C.blue:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+                    {catLabel(lang||"ja",cat)}
+                  </button>
+                ))}
+              </div>
+              {searchCat&&(
+                <>
+                  <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.muted,borderBottom:`1px solid ${C.muted}40`,paddingBottom:5,marginBottom:8,marginTop:12}}>{lang==="en"?"Block type":"ブロック種"}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {BLOCK_TYPES.filter(bt=>bt.cat===searchCat).map(bt=>(
+                      <button key={bt.val} onClick={()=>setSearchBlock(searchBlock===bt.val?"":bt.val)} style={{padding:"7px 11px",background:searchBlock===bt.val?`${C.blue}25`:C.navyLight,color:searchBlock===bt.val?C.blue:C.muted,border:`1px solid ${searchBlock===bt.val?C.blue:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+                        {lang==="en"?(LANG_BLOCK_TYPES_EN[bt.val]||bt.label):bt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.accent,marginBottom:10}}>
+              {filteredRecs.length} 件ヒット
+            </div>
+            {filteredRecs.length===0
+              ?<div style={{textAlign:"center",color:C.muted,padding:"32px 0",fontSize:13}}>該当する症例がありません</div>
+              :filteredRecs.map(r=><RecordCard key={r.id} r={r} lang={lang} onSelect={()=>onSelect(r)}/>)
+            }
+          </>
+        ):(
+          currentRecs.length===0
+            ?<div style={{textAlign:"center",color:C.muted,padding:"48px 0"}}>
+                <div style={{fontSize:36,marginBottom:12}}>📋</div>
+                <div style={{fontSize:13}}>
+                  {activeTab==="confirmed"?lang==="en"?"No confirmed cases":"確定済の症例はありません":lang==="en"?"No records":"記録がありません"}
+                </div>
+                {activeTab==="own"&&<div style={{fontSize:11,marginTop:6}}>{lang==="en"?"Tap \"+ New Record\" to add a case":"「新規記録」から施行記録を追加"}</div>}
+              </div>
+            :activeTab==="eval"
+              ?<EvalTab evalRecs={currentRecs} onSelect={onSelect} lang={lang}/>
+              :currentRecs.map(r=><RecordCard key={r.id} r={r} lang={lang} onSelect={()=>onSelect(r)} onDelete={r.draft?async(r)=>{
+              if(!window.confirm("下書きを削除しますか？"))return;
+              await db.ref(`records/${r.id}`).remove();
+              showToast("下書きを削除しました");
+            }:null}/>)
+        )}
+      </div>
+      <div style={{background:C.navyMid,borderTop:`1px solid ${C.navyLight}`,padding:"12px 16px",display:"flex",gap:10}}>
+        <button onClick={onSupervisors} style={{flex:1,padding:14,background:C.navyLight,color:C.muted,border:`1px solid ${C.navyLight}`,fontWeight:"bold",fontSize:13,cursor:"pointer"}}>{lang==="en"?"🏆 Pass Records":"🏆 合格者一覧"}</button>
+        <button onClick={onNew} style={{flex:2,padding:14,background:C.accent,color:C.navy,border:"none",fontWeight:"bold",fontSize:14,cursor:"pointer"}}>{lang==="en"?"+ New Record":"＋ 新規記録"}</button>
+      </div>
+    </Wrap>
+  );
+}
+
+function RecordCard({r,onSelect,onDelete,lang}){
+  const sc = r.draft?C.muted:r.locked?C.muted:r.overallResult==="pass"?C.green:r.dopsComplete?C.blue:C.accent;
+  const sl = r.draft?(lang==="en"?"✏️ Draft":"✏️ 下書き"):r.locked?"🔒 Locked":r.overallResult==="pass"?"✓ PASS":r.dopsComplete?"DOPS済":"Pending";
+  const bt  = lang==="en"?(LANG_BLOCK_TYPES_EN[r.blockType]||r.blockType||"Unknown"):(BLOCK_TYPES.find(b=>b.val===r.blockType)?.label||r.blockType||"不明");
+  const sit = sitLabel(lang||"ja",r.situation);
+  return(
+    <div style={{background:r.draft?`${C.navyMid}`:C.navyMid,border:r.draft?`1.5px dashed ${C.muted}`:`1px solid ${C.navyLight}`,borderLeft:r.draft?`4px dashed ${C.muted}`:`4px solid ${sc}`,padding:"13px 14px",marginBottom:10,opacity:r.draft?0.75:1}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+        <span style={{fontFamily:"Courier New,monospace",fontSize:11,color:C.accent,fontWeight:"bold"}}>{r.caseNum||"—"}</span>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:11,color:sc,fontWeight:"bold"}}>{sl}</span>
+          {r.draft&&onDelete&&(
+            <button onClick={e=>{e.stopPropagation();onDelete(r);}} style={{background:`${C.red}20`,border:`1px solid ${C.red}`,color:C.red,fontSize:11,padding:"2px 8px",cursor:"pointer"}}>{lang==="en"?"Delete":"削除"}</button>
+          )}
+        </div>
+      </div>
+      <div onClick={onSelect} style={{cursor:"pointer"}}>
+      <div style={{fontSize:15,fontWeight:"bold",color:C.white,marginBottom:2}}>{bt}</div>
+      <div style={{fontSize:11,color:C.muted,marginBottom:4}}>
+        {r.side==="left"?(lang==="en"?"L":"左"):r.side==="right"?(lang==="en"?"R":"右"):r.side==="bilateral"?(lang==="en"?"Bilateral":"左右"):""}
+        {sit&&`　${sit}`}
+        　／　{lang==="en"?"by: ":"施行："}{r.trainee}　{lang==="en"?"sup.: ":"監督："}{r.supervisor||(lang==="en"?"—":"未登録")}
+      </div>
+      <div style={{fontSize:10,color:C.muted,fontFamily:"Courier New,monospace"}}>{r.date} {r.time}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── NEW RECORD ────────────────────────────────────────────────
+function NewRecord({session,lang,draftRec,onDone,onCancel,showToast}){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const [page,setPage] = useState(draftRec?2:1);
+  const [checks,setChecks] = useState(draftRec
+    ? Object.fromEntries(SAFETY_CHECKS.map(c=>[c.key,!!draftRec[c.key]]))
+    : Object.fromEntries(SAFETY_CHECKS.map(c=>[c.key,false]))
+  );
+  const allChecked = SAFETY_CHECKS.every(c=>checks[c.key]);
+  const [f,setF] = useState(draftRec ? {
+    blockType:draftRec.blockType||"",
+    _cat:BLOCK_TYPES.find(b=>b.val===draftRec.blockType)?.cat||"",
+    _draftId:draftRec.id||"",
+    _isEdit:draftRec._isEdit||false,
+    _draftNum:null,
+    _draftCaseNum:draftRec.caseNum||"",
+    _createdAt:draftRec.createdAt||"",
+    side:draftRec.side||"",
+    situation:draftRec.situation||"",
+    drug_code:draftRec.drug_code||"",
+    concentration:draftRec.concentration||"",
+    volume:draftRec.volume?String(draftRec.volume):"",
+    drugDate:draftRec.date||todayStr,
+    drugTime:draftRec.time||"",
+    lidocaineUsed:!!draftRec.lidocaineUsed,
+    approach:draftRec.approach||"",
+    aspiration:draftRec.aspiration||"",
+    notes:draftRec.notes||"",
+    echoImagePre:draftRec.echoImagePre||null,
+    echoImagePost:draftRec.echoImagePost||null,
+  } : {
+    blockType:"", _cat:"", _draftId:"", _draftNum:null, _draftCaseNum:"", _createdAt:"", _isEdit:false, side:"", situation:"",
+    drug_code:"", concentration:"", volume:"",
+    drugDate:todayStr, drugTime:"",
+    lidocaineUsed:false, approach:"", aspiration:"",
+    notes:"", echoImagePre:null, echoImagePost:null,
+  });
+  const set = (k,v)=>setF(p=>({...p,[k]:v}));
+  const [saving,setSaving] = useState(false);
+
+  const canSave = f.blockType&&f.side&&f.situation&&f.drug_code&&f.concentration&&f.volume&&f.drugDate&&f.approach&&f.aspiration;
+
+  const handleDraftSave = async()=>{
+    if(!f.blockType){return;}
+    setSaving(true);
+    const isExisting = !!f._draftId;
+    const id = isExisting ? f._draftId : `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    const num = isExisting ? f._draftNum : await fbNextCaseNum(session.id,f.blockType);
+    const caseNum = isExisting ? f._draftCaseNum : fbFormatCaseNum(session.id,f.blockType,num);
+    const {_cat,_draftId,_draftNum,_draftCaseNum,...cleanF} = f;
+    const rec={
+      id,caseNum,
+      createdAt:f._createdAt||new Date().toISOString(),
+      updatedAt:new Date().toISOString(),
+      trainee:session.name,traineeUid:session.uid,
+      date:cleanF.drugDate||new Date().toISOString().slice(0,10),
+      time:cleanF.drugTime||"--:--",
+      supervisor:null,supervisorUid:null,supervisorAssignedAt:null,
+      ...checks,...cleanF,
+      drug_code:cleanF.drug_code||"",
+      volume:parseFloat(cleanF.volume)||null,
+      locked:false,lockedBy:null,lockedAt:null,
+      dopsScores:{},dopsComments:{},
+      supervisionLevel:null,overallResult:null,
+      strengths:"",improvements:"",
+      assessorSignedAt:null,dopsComplete:false,
+      draft:true,
+    };
+    await fbSaveRecord(rec);
+    setSaving(false);
+    showToast(lang==="en"?"Draft saved":"下書きを保存しました");
+    onDone();
+  };
+
+  const handleSave = async()=>{
+    if(!canSave){showToast("必須項目を入力してください");return;}
+    setSaving(true);
+    const isExisting = !!f._draftId;
+    const id      = isExisting ? f._draftId : `${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    const num     = isExisting ? f._draftNum : await fbNextCaseNum(session.id,f.blockType);
+    const caseNum = isExisting ? f._draftCaseNum : fbFormatCaseNum(session.id,f.blockType,num);
+    const {_cat,_draftId,_draftNum,_draftCaseNum,_createdAt,_isEdit,...cleanF} = f;
+    const rec={
+      id,caseNum,
+      createdAt:f._createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),
+      trainee:draftRec?.trainee||session.name,traineeUid:draftRec?.traineeUid||session.uid,
+      date:cleanF.drugDate||todayStr,time:cleanF.drugTime||"--:--",
+      ...(f._isEdit?{
+        supervisor:draftRec.supervisor||null,supervisorUid:draftRec.supervisorUid||null,
+        supervisorAssignedAt:draftRec.supervisorAssignedAt||null,
+        dopsScores:draftRec.dopsScores||{},dopsComments:draftRec.dopsComments||{},
+        supervisionLevel:draftRec.supervisionLevel||null,overallResult:draftRec.overallResult||null,
+        strengths:draftRec.strengths||"",improvements:draftRec.improvements||"",
+        assessorSignedAt:draftRec.assessorSignedAt||null,dopsComplete:draftRec.dopsComplete||false,
+        locked:draftRec.locked||false,lockedBy:draftRec.lockedBy||null,lockedAt:draftRec.lockedAt||null,
+      }:{
+        supervisor:null,supervisorUid:null,supervisorAssignedAt:null,
+        dopsScores:{},dopsComments:{},
+        supervisionLevel:null,overallResult:null,
+        strengths:"",improvements:"",
+        assessorSignedAt:null,dopsComplete:false,
+        locked:false,lockedBy:null,lockedAt:null,
+      }),
+      ...checks,...cleanF,
+      draft:false,
+      drug:`${f.drug_name||"未選択"} ${f.concentration}%`,
+      volume:parseFloat(f.volume),
+      locked:false,lockedBy:null,lockedAt:null,
+      dopsScores:{},dopsComments:{},
+      supervisionLevel:null,overallResult:null,
+      strengths:"",improvements:"",
+      assessorSignedAt:null,dopsComplete:false,
+    };
+    await fbSaveRecord(rec);
+    setSaving(false);
+    showToast(lang==="en"?"Case saved":"症例を保存しました");
+    onDone();
+  };
+
+  if(page===1) return(
+    <Wrap>
+      <Hdr tag="STEP 1 / 2" title={lang==="en"?"Safety Checklist":"安全確認チェック"} sub={`${lang==="en"?"Performer":"施行者"}：${session.name}`} accent={C.red} left={<BtnIcon onPress={onCancel} label="←"/>}/>
+      <div style={{height:4,background:C.navyLight}}><div style={{width:"50%",height:"100%",background:C.red}}/></div>
+      <div style={{flex:1,overflowY:"auto",padding:"20px 16px"}}>
+        <div style={{fontSize:12,color:C.muted,marginBottom:20,lineHeight:1.7}}>{lang==="en"?"Please confirm all items before proceeding.":"以下の項目を全て確認してから施行記録に進んでください。"}</div>
+        {(lang==="en"?SAFETY_CHECKS_EN:SAFETY_CHECKS).map(c=>(
+          <button key={c.key} onClick={()=>setChecks(p=>({...p,[c.key]:!p[c.key]}))} style={{width:"100%",marginBottom:10,padding:"16px",background:checks[c.key]?`${C.green}18`:C.navyMid,border:`1.5px solid ${checks[c.key]?C.green:C.navyLight}`,display:"flex",alignItems:"center",gap:14,cursor:"pointer",textAlign:"left"}}>
+            <div style={{width:28,height:28,flexShrink:0,background:checks[c.key]?C.green:C.navyLight,border:`2px solid ${checks[c.key]?C.green:C.muted}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.navy,fontWeight:"bold"}}>
+              {checks[c.key]?"✓":""}
+            </div>
+            <span style={{fontSize:13,color:checks[c.key]?C.white:C.muted,fontWeight:checks[c.key]?"bold":"normal"}}>{c.label}</span>
+          </button>
+        ))}
+        <div style={{textAlign:"center",marginTop:8}}>
+          <span style={{fontFamily:"Courier New,monospace",fontSize:13,color:allChecked?C.green:C.muted}}>
+            {SAFETY_CHECKS.filter(c=>checks[c.key]).length} / {SAFETY_CHECKS.length} {lang==="en"?"confirmed":"確認済"}
+          </span>
+        </div>
+      </div>
+      <div style={{background:C.navyMid,borderTop:`1px solid ${C.navyLight}`,padding:"12px 16px",display:"flex",gap:10}}>
+        <button onClick={onCancel} style={{...outBtn,flex:1,padding:"13px 0"}}>{lang==="en"?"Cancel":"キャンセル"}</button>
+        <button onClick={()=>setPage(2)} disabled={!allChecked} style={{flex:2,padding:14,background:allChecked?C.green:C.navyLight,color:allChecked?C.navy:C.muted,border:"none",fontWeight:"bold",fontSize:14,cursor:allChecked?"pointer":"not-allowed"}}>
+          {lang==="en"?"Proceed to Block Record →":"ブロック施行記録へ →"}
+        </button>
+      </div>
+    </Wrap>
+  );
+
+  return(
+    <Wrap>
+      <Hdr tag={draftRec?._isEdit?"EDIT":"STEP 2 / 2"} title={lang==="en"?"Block Record":"ブロック施行記録"} sub={`${lang==="en"?"Performer":"施行者"}：${session.name}`} accent={C.blue} left={<BtnIcon onPress={()=>setPage(1)} label="←"/>}/>
+      <div style={{height:4,background:C.navyLight}}><div style={{width:"100%",height:"100%",background:C.blue}}/></div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+
+        <Sec label={lang==="en"?"Block & Setup":"ブロック種・設定"} color={C.blue}>
+          <Fld label={lang==="en"?"Category":lang==="en"?"Category":"カテゴリ"}>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {BLOCK_CATS.map(cat=>(
+                <button key={cat} onClick={()=>setF(p=>({...p,blockType:"",_cat:cat}))} style={{padding:"8px 14px",background:f._cat===cat?`${C.blue}30`:C.navyLight,color:f._cat===cat?C.blue:C.muted,border:`1.5px solid ${f._cat===cat?C.blue:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+                  {catLabel(lang||"ja",cat)}
+                </button>
+              ))}
+            </div>
+          </Fld>
+          {f._cat&&(
+            <Fld label={lang==="en"?"Block type":"ブロック種"}>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {BLOCK_TYPES.filter(bt=>bt.cat===f._cat).map(bt=>(
+                  <button key={bt.val} onClick={()=>set("blockType",bt.val)} style={{padding:"10px 14px",textAlign:"left",background:f.blockType===bt.val?`${C.blue}25`:C.navyLight,color:f.blockType===bt.val?C.blue:C.muted,border:`1.5px solid ${f.blockType===bt.val?C.blue:C.navyLight}`,fontSize:13,cursor:"pointer"}}>
+                    {f.blockType===bt.val?"● ":"○ "}{lang==="en"?(LANG_BLOCK_TYPES_EN[bt.val]||bt.label):bt.label}
+                  </button>
+                ))}
+              </div>
+            </Fld>
+          )}
+          <Fld label={lang==="en"?"Side":"側"}>
+            <div style={{display:"flex",gap:8}}>
+              <RBtn label={lang==="en"?"Left":"左"}   active={f.side==="left"}       onPress={()=>set("side","left")}       color={C.blue}/>
+              <RBtn label={lang==="en"?"Bilateral":"左右"} active={f.side==="bilateral"}  onPress={()=>set("side","bilateral")}  color={C.blue}/>
+              <RBtn label={lang==="en"?"Right":"右"}   active={f.side==="right"}      onPress={()=>set("side","right")}      color={C.blue}/>
+            </div>
+          </Fld>
+          <Fld label={lang==="en"?"Situation":"施行シチュエーション"}>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {(lang==="en"?SITUATIONS.map(s=>({...s,label:SITUATIONS_EN[s.val]||s.label})):SITUATIONS).map(s=>(
+                <RBtn key={s.val} label={s.label} active={f.situation===s.val} onPress={()=>set("situation",s.val)} color={C.blue}/>
+              ))}
+            </div>
+          </Fld>
+        </Sec>
+
+        <Sec label={lang==="en"?"Ultrasound Image (Pre)":"エコー画像（施行前）"} color={C.blue}>
+          <EchoUpload value={f.echoImagePre} onChange={v=>set("echoImagePre",v)} label={lang==="en"?"Pre-procedure ultrasound image":"施行前のエコー画像"}/>
+        </Sec>
+
+        <Sec label={lang==="en"?"Drug":"使用薬剤"} color={C.purple}>
+          <Fld label={lang==="en"?"Drug":"薬剤"}>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {DRUGS.map(d=>(
+                <button key={d.code} onClick={()=>set("drug_code",d.code)} style={{padding:"10px 14px",textAlign:"left",background:f.drug_code===d.code?`${C.purple}25`:C.navyLight,color:f.drug_code===d.code?C.purple:C.muted,border:`1.5px solid ${f.drug_code===d.code?C.purple:C.navyLight}`,fontSize:13,cursor:"pointer"}}>
+                  {f.drug_code===d.code?"● ":"○ "}{lang==="en"?d.en:d.ja}
+                </button>
+              ))}
+            </div>
+          </Fld>
+          <Fld label={lang==="en"?"Concentration (%)":"濃度 (%)"}>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+              {CONCENTRATIONS.map(c=>(
+                <button key={c} onClick={()=>set("concentration",c)} style={{padding:"10px 14px",background:f.concentration===c?C.purple:C.navyLight,color:f.concentration===c?C.white:C.muted,border:`1px solid ${f.concentration===c?C.purple:C.navyLight}`,fontWeight:"bold",fontSize:14,cursor:"pointer",fontFamily:"Courier New,monospace"}}>{c}</button>
+              ))}
+              <input type="number" value={CONCENTRATIONS.includes(f.concentration)?"":(f.concentration||"")} onChange={e=>set("concentration",e.target.value)} placeholder={lang==="en"?"Enter value":"直接入力"} style={{...inputSt,width:110,padding:"10px 8px",fontSize:13}}/>
+            </div>
+          </Fld>
+          <Fld label={lang==="en"?"Volume (mL)":"容量 (mL)"}>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {["10","15","20","30"].map(v=>(
+                <button key={v} onClick={()=>set("volume",v)} style={{padding:"10px 14px",background:f.volume===v?C.purple:C.navyLight,color:f.volume===v?C.white:C.muted,border:`1px solid ${f.volume===v?C.purple:C.navyLight}`,fontWeight:"bold",fontSize:14,cursor:"pointer",fontFamily:"Courier New,monospace"}}>{v}</button>
+              ))}
+              <input type="number" value={["10","15","20","30"].includes(f.volume)?"":(f.volume||"")} onChange={e=>set("volume",e.target.value)} placeholder={lang==="en"?"Enter value":"直接入力"} style={{...inputSt,width:100,padding:"10px 8px",fontSize:13}}/>
+            </div>
+          </Fld>
+          <Fld label={lang==="en"?"Date / Time":"薬剤投与日時"}>
+            <div style={{display:"flex",gap:8}}>
+              <Inp type="date" value={f.drugDate} onChange={v=>set("drugDate",v)}/>
+              <Inp type="time" value={f.drugTime} onChange={v=>set("drugTime",v)} lang={lang}/>
+            </div>
+          </Fld>
+  
+        </Sec>
+
+        <Sec label={lang==="en"?"Technique":"手技"} color={C.green}>
+          <Fld label={lang==="en"?"Approach":"アプローチ"}>
+            <div style={{display:"flex",gap:8}}>
+              <RBtn label="In-plane"     active={f.approach==="in-plane"}     onPress={()=>set("approach","in-plane")}     color={C.green}/>
+              <RBtn label="Out-of-plane" active={f.approach==="out-of-plane"} onPress={()=>set("approach","out-of-plane")} color={C.green}/>
+            </div>
+          </Fld>
+          <Fld label={lang==="en"?"Aspiration":"吸引（Aspiration）"}>
+            <div style={{display:"flex",gap:6}}>
+              {(lang==="en"?ASPIRATION_OPTS_EN:ASPIRATION_OPTS).map(o=>(
+                <button key={o.val} onClick={()=>set("aspiration",o.val)} style={{flex:1,padding:"10px 4px",background:f.aspiration===o.val?(o.val==="skipped"?C.muted:o.val==="negative"?C.green:C.red)+"40":C.navyLight,color:f.aspiration===o.val?(o.val==="skipped"?C.white:o.val==="negative"?C.green:C.red):C.muted,border:`1.5px solid ${f.aspiration===o.val?(o.val==="skipped"?C.muted:o.val==="negative"?C.green:C.red):C.navyLight}`,fontSize:11,cursor:"pointer",textAlign:"center",lineHeight:1.4}}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </Fld>
+        </Sec>
+
+        <Sec label={lang==="en"?"Ultrasound Image (Post)":"エコー画像（施行後）"} color={C.green}>
+          <EchoUpload value={f.echoImagePost} onChange={v=>set("echoImagePost",v)} label={lang==="en"?"Post-procedure ultrasound image":"施行後のエコー画像"}/>
+        </Sec>
+
+        <Sec label={lang==="en"?"Notes":"特記事項"} color={C.muted}>
+          <Fld label={lang==="en"?"Notes / Block name (free text)":"メモ・ブロック名など（自由記載）"}>
+            <textarea value={f.notes} onChange={e=>set("notes",e.target.value)} style={{width:"100%",background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:8,fontSize:13,minHeight:72,resize:"vertical",outline:"none"}}/>
+          </Fld>
+        </Sec>
+
+      </div>
+      <div style={{background:C.navyMid,borderTop:`1px solid ${C.navyLight}`,padding:"12px 16px",display:"flex",gap:10}}>
+        {!draftRec?._isEdit&&(
+          <button onClick={handleDraftSave} disabled={saving||!f.blockType} style={{flex:1,padding:14,background:saving||!f.blockType?C.navyLight:C.navyLight,color:saving||!f.blockType?C.muted:C.muted,border:`1px solid ${C.muted}`,fontWeight:"bold",fontSize:13,cursor:saving||!f.blockType?"not-allowed":"pointer"}}>
+            {lang==="en"?"Save Draft":"下書き保存"}
+          </button>
+        )}
+        <button onClick={handleSave} disabled={saving||!canSave} style={{flex:2,padding:14,background:saving||!canSave?C.navyLight:C.accent,color:saving||!canSave?C.muted:C.navy,border:"none",fontWeight:"bold",fontSize:14,cursor:saving||!canSave?"not-allowed":"pointer"}}>
+          {saving?(lang==="en"?"Saving...":"保存中…"):(lang==="en"?"Save Case":"症例を保存")}
+        </button>
+      </div>
+    </Wrap>
+  );
+}
+
+// ── DETAIL SCREEN ─────────────────────────────────────────────
+function DetailScreen({rec,session,lang,onBack,onUpdate,showToast,onEdit}){
+  const isMurouchi = session.id==="murouchi";
+  const isAdmin    = isMurouchi||session.isAdmin||false;
+  const isTrainee  = rec.trainee===session.name;
+  const levels     = session.certLevels||{};
+    const certBlocks2 = Object.entries(levels).filter(([,v])=>v==="cert").map(([k])=>k);
+  const canAssess  = isAdmin||(!isTrainee&&certBlocks2.includes(rec.blockType));
+
+  const bt  = lang==="en"?(LANG_BLOCK_TYPES_EN[rec.blockType]||rec.blockType||"Unknown"):(BLOCK_TYPES.find(b=>b.val===rec.blockType)?.label||rec.blockType||"不明");
+  const sit = sitLabel(lang||"ja",rec.situation);
+
+  const [tab,setTab] = useState("info");
+
+  // DOPS state
+  const [scores,       setScores]       = useState(rec.dopsScores||{});
+  const [comments,     setComments]     = useState(rec.dopsComments||{});
+  const [supLv,        setSupLv]        = useState(rec.supervisionLevel||"");
+  const [result,       setResult]       = useState(rec.overallResult||"");
+  const [strengths,    setStrengths]    = useState(rec.strengths||"");
+  const [improvements, setImprovements] = useState(rec.improvements||"");
+  const [saving,       setSaving]       = useState(false);
+
+  const activeItems = supLv==="independence"?DOPS_ITEMS.filter(item=>item.num==="05"||item.num==="08"):DOPS_ITEMS;
+  const commentRequired = activeItems.filter(item=>(scores[item.num]===1||scores[item.num]===2)&&!(comments[item.num]||"").trim());
+  const canSaveDops = activeItems.every(item=>scores[item.num]) && commentRequired.length===0;
+
+  const canEdit = session.id==="murouchi" ? true : canAssess&&!rec.dopsComplete&&!rec.locked;
+
+  const handleSaveDops = async()=>{
+    if(!activeItems.every(item=>scores[item.num])){showToast(lang==="en"?"Please score all items":"全項目にスコアを入力してください");return;}
+    if(commentRequired.length>0){showToast(lang==="en"?"Comment required for 'Needs improvement' items":"「改善点あり」の項目にコメントを入力してください");return;}
+    if(!supLv)    {showToast("監督レベルを選択してください");return;}
+    if(!result)   {showToast("評価結果を選択してください");return;}
+    setSaving(true);
+    const updated={
+      ...rec,
+      supervisor:session.name,supervisorUid:session.uid,
+      supervisorAssignedAt:rec.supervisorAssignedAt||new Date().toISOString(),
+      dopsScores:scores,dopsComments:comments,
+      supervisionLevel:supLv,overallResult:result,
+      strengths,improvements,
+      assessorSignedAt:new Date().toISOString(),
+      dopsComplete:true,
+      locked:true, lockedBy:session.name, lockedAt:new Date().toISOString(),
+    };
+    await fbSaveRecord(updated);
+    onUpdate(updated);
+    showToast("DOPS評価を保存しました");
+    setSaving(false);
+  };
+
+  return(
+    <Wrap>
+      <Hdr
+        tag={rec.caseNum||"—"}
+        title={bt}
+        sub={`${rec.side==="left"?"左":rec.side==="right"?"右":rec.side==="bilateral"?"左右":""}　${sit}　／　${rec.trainee}`}
+        accent={rec.overallResult==="pass"?C.green:rec.dopsComplete?C.blue:C.accent}
+        left={<BtnIcon onPress={onBack} label="←"/>}
+        right={
+          <div style={{display:"flex",gap:4}}>
+            {session.id==="murouchi"&&rec.locked&&(
+              <BtnIcon onPress={async()=>{
+                if(!window.confirm("ロックを解除しますか？")) return;
+                const d={locked:false,lockedBy:null,lockedAt:null};
+                await fbUpdateRecord(rec.id,d);
+                onUpdate({...rec,...d});
+                showToast("ロックを解除しました");
+              }} label="🔒"/>
+            )}
+            {session.id==="murouchi"&&!rec.locked&&rec.dopsComplete&&(
+              <BtnIcon onPress={async()=>{
+                const d={locked:true,lockedBy:session.name,lockedAt:new Date().toISOString()};
+                await fbUpdateRecord(rec.id,d);
+                onUpdate({...rec,...d});
+                showToast("ロックしました");
+              }} label="🔓"/>
+            )}
+            {session.id==="murouchi"&&(
+              <BtnIcon onPress={async()=>{
+                if(!window.confirm(`${rec.caseNum} を削除しますか？`)) return;
+                await db.ref(`records/${rec.id}`).remove();
+                showToast("症例を削除しました");
+                onBack();
+              }} label="🗑"/>
+            )}
+          </div>
+        }
+      />
+      <div style={{display:"flex",background:C.navyMid,borderBottom:`1px solid ${C.navyLight}`}}>
+        {[["info",lang==="en"?"Record":"施行記録"],["dops","DOPS"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"11px 0",background:"none",border:"none",borderBottom:tab===k?`2px solid ${C.accent}`:`2px solid transparent`,color:tab===k?C.accent:C.muted,fontSize:13,cursor:"pointer"}}>{l}</button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+
+        {tab==="info"&&(
+          <>
+            <Sec label={lang==="en"?"Procedure Info":"施行情報"} color={C.blue}>
+              <DRow label={lang==="en"?"Case No.":"症例番号"}         val={rec.caseNum}/>
+              <DRow label={lang==="en"?"Performer":lang==="en"?"Performer":"施行者"}           val={rec.trainee}/>
+              <DRow label={lang==="en"?"Block":"ブロック種"}       val={bt}/>
+              <DRow label={lang==="en"?"Side":"側"}               val={rec.side==="left"?(lang==="en"?"Left":"左"):rec.side==="right"?(lang==="en"?"Right":"右"):rec.side==="bilateral"?(lang==="en"?"Bilateral":"左右"):"—"}/>
+              <DRow label={lang==="en"?"Situation":"シチュエーション"} val={sit||"—"}/>
+              <DRow label={lang==="en"?"Date/Time":"日時"}             val={`${rec.date} ${rec.time}`}/>
+              <DRow label={lang==="en"?"Supervisor":"監督者"}           val={rec.supervisor||lang==="en"?"Not registered":"未登録"}/>
+            </Sec>
+            <Sec label={lang==="en"?"Drug":"薬剤"} color={C.purple}>
+              <DRow label={lang==="en"?"Drug":"薬剤"}     val={rec.drug_code?`${drugLabel(lang||"ja",rec.drug_code)} ${rec.concentration||""}%`:(rec.drug||"—")}/>
+              <DRow label={lang==="en"?"Volume":"容量"}     val={rec.volume!=null?`${rec.volume} mL`:"—"}/>
+            </Sec>
+            <Sec label={lang==="en"?"Technique":"手技"} color={C.green}>
+              <DRow label={lang==="en"?"Approach":"アプローチ"} val={rec.approach}/>
+              <DRow label={lang==="en"?"Aspiration":"Aspiration"} val={aspirLabel(lang||"ja",rec.aspiration)||"—"} warn={rec.aspiration==="skipped"}/>
+            </Sec>
+            {rec.notes&&(
+              <Sec label="特記事項" color={C.muted}>
+                <div style={{fontSize:13,color:C.white,lineHeight:1.6,padding:"8px 0"}}>{rec.notes}</div>
+              </Sec>
+            )}
+            {rec.echoImagePre&&(
+              <Sec label={lang==="en"?"Ultrasound (Pre)":"エコー画像（施行前）"} color={C.blue}>
+                <img src={rec.echoImagePre} alt="エコー画像" style={{width:"100%",maxHeight:280,objectFit:"contain",background:"#000"}}/>
+              </Sec>
+            )}
+            {rec.echoImagePost&&(
+              <Sec label={lang==="en"?"Ultrasound (Post)":"エコー画像（施行後）"} color={C.green}>
+                <img src={rec.echoImagePost} alt="エコー画像（施行後）" style={{width:"100%",maxHeight:280,objectFit:"contain",background:"#000"}}/>
+              </Sec>
+            )}
+            <Sec label={lang==="en"?"Safety Checklist":"安全確認チェック"} color={C.red}>
+              {(lang==="en"?SAFETY_CHECKS_EN:SAFETY_CHECKS).map(c=>(
+                <div key={c.key} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{color:rec[c.key]?C.green:C.red,fontSize:14}}>{rec[c.key]?"✓":"✗"}</span>
+                  <span style={{fontSize:12,color:rec[c.key]?C.white:C.muted}}>{c.label}</span>
+                </div>
+              ))}
+            </Sec>
+
+            {session.id==="murouchi"&&(
+              <button onClick={()=>onEdit(rec)} style={{width:"100%",padding:12,background:`${C.purple}20`,border:`1px solid ${C.purple}`,color:C.purple,fontWeight:"bold",fontSize:13,cursor:"pointer",marginTop:8}}>
+                ✏️ 施行記録を編集
+              </button>
+            )}
+
+          </>
+        )}
+
+        {tab==="dops"&&(
+          <>
+            {!canAssess&&!isTrainee&&(
+              <div style={{color:C.muted,fontSize:12,padding:"20px 0",textAlign:"center"}}>このブロックの評価権限がありません</div>
+            )}
+            {isTrainee&&!rec.dopsComplete&&(
+              <div style={{background:`${C.accent}15`,border:`1px solid ${C.accent}40`,padding:"12px",marginBottom:16,fontSize:12,color:C.accentLight}}>
+                {lang==="en"?"Assessment will be entered by supervisor. You can review after completion.":"評価は監督者が入力します。評価完了後に確認できます。"}
+              </div>
+            )}
+            {(canAssess||rec.dopsComplete)&&(
+              <>
+                <Sec label={lang==="en"?"Supervision Level":"監督レベル"} color={C.accent}>
+                  {canEdit?(
+                    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                      {[
+                        ["direct",      lang==="en"?"Direct supervision":"直接監督"],
+                        ["independence",lang==="en"?"Independent performance":"独立して施行"],
+                        ["certification",lang==="en"?"Certification examination":"認定試験として施行"],
+                      ].map(([v,label])=>(
+                        <button key={v} onClick={()=>setSupLv(v)} style={{padding:"11px 14px",textAlign:"left",background:supLv===v?`${C.accent}20`:C.navyMid,color:supLv===v?C.accent:C.muted,border:`1.5px solid ${supLv===v?C.accent:C.navyLight}`,fontSize:13,cursor:"pointer"}}>
+                          {supLv===v?"● ":"○ "}{label}
+                        </button>
+                      ))}
+                    </div>
+                  ):(
+                    <div style={{padding:"10px 14px",background:`${C.accent}15`,border:`1px solid ${C.accent}40`,fontSize:13,color:C.accent,fontWeight:"bold",marginBottom:14}}>
+                      {supLv==="direct"?(lang==="en"?"Direct supervision":"直接監督")
+                       :supLv==="independence"?(lang==="en"?"Independent performance":"独立して施行")
+                       :supLv==="certification"?(lang==="en"?"Certification examination":"認定試験として施行"):"—"}
+                    </div>
+                  )}
+                </Sec>
+
+                <Sec label={lang==="en"?"DOPS Score":"DOPS スコア"} color={C.blue}>
+                  {(()=>{
+                    const items = supLv==="independence"
+                      ?(lang==="en"?DOPS_ITEMS_EN:DOPS_ITEMS).filter(item=>item.num==="05"||item.num==="08")
+                      :(lang==="en"?DOPS_ITEMS_EN:DOPS_ITEMS);
+                    if(canEdit) return items.map(item=>(
+                      <div key={item.num} style={{marginBottom:14,background:C.navyMid,border:`1px solid ${C.navyLight}`,padding:"12px"}}>
+                        <div style={{fontSize:11,fontWeight:"bold",color:C.white,marginBottom:2}}>{item.title}</div>
+                        <div style={{fontSize:10,color:C.muted,marginBottom:8}}>{item.sub}</div>
+                        <div style={{display:"flex",gap:6,marginBottom:6}}>
+                          {[1,2,3].map(n=>{
+                            const active=scores[item.num]===n;
+                            return(
+                              <button key={n} onClick={()=>setScores(p=>({...p,[item.num]:n}))} style={{flex:1,padding:"10px 0",background:active?`${SCALE_COLOR[n]}30`:C.navyLight,color:active?SCALE_COLOR[n]:C.muted,border:`2px solid ${active?SCALE_COLOR[n]:C.navyLight}`,fontWeight:"bold",fontSize:12,cursor:"pointer"}}>
+                                {lang==="en"?(SCALE_LABELS_EN[n]||SCALE_LABELS[n]):SCALE_LABELS[n]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <textarea value={comments[item.num]||""} onChange={e=>setComments(p=>({...p,[item.num]:e.target.value}))} placeholder={(scores[item.num]===1||scores[item.num]===2)?(lang==="en"?"Comment required":"コメント必須"):(lang==="en"?"Comment (optional)":"コメント（任意）")} style={{width:"100%",background:C.navyLight,border:`1px solid ${(scores[item.num]===1||scores[item.num]===2)&&!(comments[item.num]||"").trim()?C.red:C.navyLight}`,color:C.white,padding:"6px 8px",fontSize:11,minHeight:40,resize:"vertical",outline:"none",marginTop:4}}/>
+                      </div>
+                    ));
+                    // Read-only compact view
+                    return items.map(item=>(
+                      <div key={item.num} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:`1px solid ${C.navyLight}`}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,color:C.white,fontWeight:"bold",marginBottom:scores[item.num]&&comments[item.num]?4:0}}>{item.title}</div>
+                          {comments[item.num]&&<div style={{fontSize:11,color:C.accentLight,fontStyle:"italic"}}>"{comments[item.num]}"</div>}
+                        </div>
+                        {scores[item.num]&&(
+                          <div style={{flexShrink:0,padding:"4px 10px",background:`${SCALE_COLOR[scores[item.num]]}25`,border:`1px solid ${SCALE_COLOR[scores[item.num]]}`,color:SCALE_COLOR[scores[item.num]],fontSize:10,fontWeight:"bold",whiteSpace:"nowrap",marginTop:2}}>
+                            {lang==="en"?SCALE_LABELS_EN[scores[item.num]]:SCALE_LABELS[scores[item.num]]}
+                          </div>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </Sec>
+
+                <Label>{lang==="en"?"Overall Assessment":"総合評価"}</Label>
+                {(supLv==="direct"||supLv==="independence")&&(
+                  <div style={{display:"flex",gap:10,marginBottom:14}}>
+                    {[["pass",lang==="en"?"✓ GOOD":"✓ GOOD",C.green],["fail",lang==="en"?"✗ NG":"✗ NG",C.red]].map(([v,label,color])=>(
+                      <button key={v} onClick={()=>canEdit&&setResult(v)} style={{flex:1,padding:14,background:result===v?`${color}30`:C.navyMid,color:result===v?color:C.muted,border:`2px solid ${result===v?color:C.navyLight}`,fontWeight:"bold",fontSize:15,cursor:canEdit?"pointer":"default"}}>{label}</button>
+                    ))}
+                  </div>
+                )}
+                {supLv==="certification"&&(
+                  <div style={{display:"flex",gap:10,marginBottom:14}}>
+                    {[["pass",lang==="en"?"✓ Pass":"✓ 合格",C.green],["fail",lang==="en"?"More cases needed":"追加症例が必要",C.accent]].map(([v,label,color])=>(
+                      <button key={v} onClick={()=>canEdit&&setResult(v)} style={{flex:1,padding:14,background:result===v?`${color}30`:C.navyMid,color:result===v?color:C.muted,border:`2px solid ${result===v?color:C.navyLight}`,fontWeight:"bold",fontSize:15,cursor:canEdit?"pointer":"default"}}>{label}</button>
+                    ))}
+                  </div>
+                )}
+
+                <Label>{lang==="en"?"Feedback":"フィードバック"}</Label>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:10,color:C.green,fontFamily:"Courier New,monospace",marginBottom:4}}>✓ 良かった点</div>
+                  {canEdit
+                    ?<textarea value={strengths} onChange={e=>setStrengths(e.target.value)} style={{width:"100%",background:C.navyMid,border:`1px solid ${C.navyLight}`,color:C.white,padding:8,fontSize:12,minHeight:56,resize:"vertical",outline:"none"}}/>
+                    :<div style={{background:C.navyMid,padding:"8px 10px",fontSize:12,color:C.white,minHeight:36}}>{rec.strengths||"—"}</div>
+                  }
+                </div>
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:10,color:C.blue,fontFamily:"Courier New,monospace",marginBottom:4}}>↑ 改善点</div>
+                  {canEdit
+                    ?<textarea value={improvements} onChange={e=>setImprovements(e.target.value)} style={{width:"100%",background:C.navyMid,border:`1px solid ${C.navyLight}`,color:C.white,padding:8,fontSize:12,minHeight:56,resize:"vertical",outline:"none"}}/>
+                    :<div style={{background:C.navyMid,padding:"8px 10px",fontSize:12,color:C.white,minHeight:36}}>{rec.improvements||"—"}</div>
+                  }
+                </div>
+                {rec.assessorSignedAt&&(
+                  <div style={{fontSize:10,color:C.muted,fontFamily:"Courier New,monospace",textAlign:"right",marginTop:8}}>
+                    <div>評価完了：{new Date(rec.assessorSignedAt).toLocaleString("ja-JP")}</div>
+                    {rec.locked&&<div style={{color:C.red,marginTop:2}}>🔒 {lang==="en"?"Locked by":"ロック中（"}{rec.lockedBy}{lang==="en"?"":"）"}</div>}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {tab==="dops"&&(canEdit||session.id==="murouchi")&&(
+        <div style={{background:C.navyMid,borderTop:`1px solid ${C.navyLight}`,padding:"12px 16px"}}>
+          <button onClick={handleSaveDops} disabled={saving||!canSaveDops} style={{width:"100%",padding:14,background:saving?C.navyLight:C.accent,color:C.navy,border:"none",fontWeight:"bold",fontSize:14,cursor:saving?"not-allowed":"pointer"}}>
+            {saving?"保存中…":lang==="en"?"Save DOPS Assessment":"DOPS 評価を保存"}
+          </button>
+        </div>
+      )}
+    </Wrap>
+  );
+}
+
+// ── EVAL TAB ─────────────────────────────────────────────────
+function EvalTab({evalRecs,onSelect,lang}){
+  const [filterTrainee,setFilterTrainee] = useState("");
+
+  const traineeNames = [...new Set(evalRecs.map(r=>r.trainee).filter(Boolean))].sort();
+
+  const filtered = filterTrainee
+    ? evalRecs.filter(r=>r.trainee===filterTrainee)
+    : evalRecs;
+
+  // Group by trainee
+  const groups = {};
+  filtered.forEach(r=>{
+    if(!groups[r.trainee]) groups[r.trainee]=[];
+    groups[r.trainee].push(r);
+  });
+
+  if(evalRecs.length===0) return(
+    <div style={{textAlign:"center",color:C.muted,padding:"48px 0"}}>
+      <div style={{fontSize:36,marginBottom:12}}>📋</div>
+      <div style={{fontSize:13}}>評価待ちの症例はありません</div>
+    </div>
+  );
+
+  return(
+    <div>
+      {traineeNames.length>1&&(
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16,paddingBottom:12,borderBottom:`1px solid ${C.navyLight}`}}>
+          <button onClick={()=>setFilterTrainee("")} style={{padding:"7px 12px",background:filterTrainee===""?`${C.accent}30`:C.navyLight,color:filterTrainee===""?C.accent:C.muted,border:`1px solid ${filterTrainee===""?C.accent:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+            全員
+          </button>
+          {traineeNames.map(name=>(
+            <button key={name} onClick={()=>setFilterTrainee(filterTrainee===name?"":name)} style={{padding:"7px 12px",background:filterTrainee===name?`${C.blue}30`:C.navyLight,color:filterTrainee===name?C.blue:C.muted,border:`1px solid ${filterTrainee===name?C.blue:C.navyLight}`,fontSize:12,cursor:"pointer"}}>
+              {name}（{evalRecs.filter(r=>r.trainee===name).length}）
+            </button>
+          ))}
+        </div>
+      )}
+      {Object.entries(groups).map(([trainee,recs])=>(
+        <div key={trainee} style={{marginBottom:20}}>
+          <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.blue,borderBottom:`1px solid ${C.blue}40`,paddingBottom:5,marginBottom:10,display:"flex",justifyContent:"space-between"}}>
+            <span>{trainee}</span>
+            <span>{recs.length} 件待ち</span>
+          </div>
+          {recs.map(r=><RecordCard key={r.id} r={r} lang={lang} onSelect={()=>onSelect(r)}/>)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── SUPERVISORS ───────────────────────────────────────────────
+function SupervisorsScreen({lang,onBack}){
+  const [users,setUsers]     = useState([]);
+  const [allRecs,setAllRecs] = useState([]);
+  const [viewMode,setViewMode] = useState("block");
+
+  useEffect(()=>{
+    fbGetAllUsers().then(setUsers);
+    db.ref("records").once("value",snap=>{
+      const data=snap.val()||{};
+      setAllRecs(Object.values(data).filter(r=>r.overallResult==="pass"));
+    });
+  },[]);
+
+  const trainees = users.filter(u=>u.role!=="supervisor"&&u.isActive!==false);
+
+  // Block view: for each block, which trainees have PASSed
+  const passByBlock = {};
+  allRecs.forEach(r=>{
+    if(!r.blockType||r.blockType==="other") return;
+    if(!passByBlock[r.blockType]) passByBlock[r.blockType]={};
+    passByBlock[r.blockType][r.trainee]=(passByBlock[r.blockType][r.trainee]||0)+1;
+  });
+
+  // Trainee view: for each trainee, which blocks have PASSed
+  const passByTrainee = {};
+  allRecs.forEach(r=>{
+    if(!r.blockType||r.blockType==="other") return;
+    if(!passByTrainee[r.trainee]) passByTrainee[r.trainee]={};
+    passByTrainee[r.trainee][r.blockType]=(passByTrainee[r.trainee][r.blockType]||0)+1;
+  });
+
+  return(
+    <Wrap>
+      <Hdr tag="PASS RECORDS" title={lang==="en"?"Pass Records":"合格者一覧"} sub={lang==="en"?"Pass cases by block/trainee":"ブロック別・研修生別の合格症例"} accent={C.green} left={<BtnIcon onPress={onBack} label="←"/>}/>
+      <div style={{display:"flex",background:C.navyMid,borderBottom:`1px solid ${C.navyLight}`}}>
+        {[["block",lang==="en"?"By Block":"ブロック別"],["trainee",lang==="en"?"By Trainee":"研修生別"]].map(([mode,label])=>(
+          <button key={mode} onClick={()=>setViewMode(mode)} style={{flex:1,padding:"11px 0",background:"none",border:"none",borderBottom:viewMode===mode?`2px solid ${C.green}`:`2px solid transparent`,color:viewMode===mode?C.green:C.muted,fontSize:13,cursor:"pointer"}}>{label}</button>
+        ))}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+
+        {viewMode==="block"&&(
+          Object.keys(passByBlock).length===0
+            ?<div style={{color:C.muted,textAlign:"center",padding:"40px 0",fontSize:13}}>{lang==="en"?"No pass records yet":"合格症例なし"}</div>
+            :BLOCK_CATS.map(cat=>{
+              const catBlocks = BLOCK_TYPES.filter(bt=>bt.cat===cat&&bt.val!=="other"&&passByBlock[bt.val]);
+              if(catBlocks.length===0) return null;
+              return(
+                <div key={cat} style={{marginBottom:16}}>
+                  <div style={{fontSize:9,color:C.accent,fontFamily:"Courier New,monospace",letterSpacing:"2px",borderBottom:`1px solid ${C.accent}30`,paddingBottom:5,marginBottom:10}}>
+                    {catLabel(lang||"ja",cat)}
+                  </div>
+                  {catBlocks.map(bt=>{
+                    const traineePasses = passByBlock[bt.val]||{};
+                    const label = lang==="en"?(LANG_BLOCK_TYPES_EN[bt.val]||bt.label):bt.label;
+                    return(
+                      <div key={bt.val} style={{background:C.navyMid,border:`1px solid ${C.navyLight}`,borderLeft:`3px solid ${C.green}`,padding:"10px 14px",marginBottom:8}}>
+                        <div style={{fontSize:12,fontWeight:"bold",color:C.white,marginBottom:8}}>{label}</div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                          {Object.entries(traineePasses).map(([name,count])=>(
+                            <div key={name} style={{padding:"4px 10px",background:`${C.green}15`,border:`1px solid ${C.green}40`,fontSize:11,color:C.green}}>
+                              {name}　<span style={{fontFamily:"Courier New,monospace",fontWeight:"bold"}}>{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
+        )}
+
+        {viewMode==="trainee"&&(
+          trainees.length===0
+            ?<div style={{color:C.muted,textAlign:"center",padding:"40px 0",fontSize:13}}>{lang==="en"?"No trainees":"研修生なし"}</div>
+            :trainees.map(u=>{
+              const passes = passByTrainee[u.name]||{};
+              const totalPass = Object.values(passes).reduce((s,n)=>s+n,0);
+              if(totalPass===0) return(
+                <div key={u.uid} style={{background:C.navyMid,border:`1px solid ${C.navyLight}`,padding:"12px 14px",marginBottom:8,opacity:0.5}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:14,color:C.muted}}>{u.name}</span>
+                    <span style={{fontSize:11,color:C.muted}}>{lang==="en"?"No pass yet":"合格症例なし"}</span>
+                  </div>
+                </div>
+              );
+              return(
+                <div key={u.uid} style={{background:C.navyMid,border:`1px solid ${C.navyLight}`,borderLeft:`3px solid ${C.green}`,padding:"12px 14px",marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <span style={{fontSize:15,fontWeight:"bold",color:C.white}}>{u.name}</span>
+                    <div style={{textAlign:"right"}}>
+                      <span style={{fontSize:18,fontWeight:"bold",color:C.green,fontFamily:"Courier New,monospace"}}>{totalPass}</span>
+                      <span style={{fontSize:9,color:C.muted,display:"block"}}>{lang==="en"?"total pass":"合格症例"}</span>
+                    </div>
+                  </div>
+                  {BLOCK_CATS.map(cat=>{
+                    const catBlocks = BLOCK_TYPES.filter(bt=>bt.cat===cat&&bt.val!=="other"&&passes[bt.val]);
+                    if(catBlocks.length===0) return null;
+                    return(
+                      <div key={cat} style={{marginBottom:6}}>
+                        <div style={{fontSize:9,color:C.accent,fontFamily:"Courier New,monospace",marginBottom:4}}>{catLabel(lang||"ja",cat)}</div>
+                        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                          {catBlocks.map(bt=>(
+                            <div key={bt.val} style={{padding:"3px 8px",background:`${C.green}15`,border:`1px solid ${C.green}40`,fontSize:10,color:C.green}}>
+                              {BLOCK_SHORT[bt.val]||BLOCK_ABBR[bt.val]}　<span style={{fontWeight:"bold"}}>{passes[bt.val]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
+        )}
+      </div>
+    </Wrap>
+  );
+}
+
+
+function TraineeDetailScreen({trainee,lang,records,session,onBack,onSelect}){
+  const traineeRecs = records.filter(r=>r.trainee===trainee.name);
+
+  // ブロック種別集計
+  const blockCounts = {};
+  traineeRecs.forEach(r=>{
+    if(r.blockType) blockCounts[r.blockType]=(blockCounts[r.blockType]||0)+1;
+  });
+
+  // カテゴリ別に整理
+  const byCategory = {};
+  BLOCK_CATS.forEach(cat=>{ byCategory[cat]=[]; });
+  Object.entries(blockCounts).forEach(([val,count])=>{
+    const bt = BLOCK_TYPES.find(b=>b.val===val);
+    const cat = bt?.cat||"その他";
+    if(!byCategory[cat]) byCategory[cat]=[];
+    byCategory[cat].push({val,label:bt?.label||val,count});
+  });
+
+  const passRecs  = traineeRecs.filter(r=>r.overallResult==="pass").length;
+  const pendRecs  = traineeRecs.filter(r=>!r.overallResult).length;
+
+  const [openCat,setOpenCat] = useState(null);
+  const [forceUpdate,setForceUpdate] = useState(0);
+
+  return(
+    <Wrap>
+      <Hdr tag="TRAINEE" title={trainee.name} sub={lang==="en"?`Total cases: ${traineeRecs.length}`:`総症例：${traineeRecs.length}件`} accent={C.blue} left={<BtnIcon onPress={onBack} label="←"/>}/>
+      <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+
+        <Sec label={lang==="en"?"Summary":"サマリー"} color={C.blue}>
+          <div style={{display:"flex",gap:10,marginBottom:4}}>
+            <div style={{flex:1,background:C.navyMid,border:`1px solid ${C.navyLight}`,padding:"12px",textAlign:"center"}}>
+              <div style={{fontSize:24,fontWeight:"bold",color:C.accent,fontFamily:"Courier New,monospace"}}>{traineeRecs.length}</div>
+              <div style={{fontSize:10,color:C.muted}}>{lang==="en"?"Cases":"総症例"}</div>
+            </div>
+            <div style={{flex:1,background:C.navyMid,border:`1px solid ${C.navyLight}`,padding:"12px",textAlign:"center"}}>
+              <div style={{fontSize:24,fontWeight:"bold",color:C.green,fontFamily:"Courier New,monospace"}}>{passRecs}</div>
+              <div style={{fontSize:10,color:C.muted}}>PASS</div>
+            </div>
+            <div style={{flex:1,background:C.navyMid,border:`1px solid ${C.navyLight}`,padding:"12px",textAlign:"center"}}>
+              <div style={{fontSize:24,fontWeight:"bold",color:C.muted,fontFamily:"Courier New,monospace"}}>{pendRecs}</div>
+              <div style={{fontSize:10,color:C.muted}}>未評価</div>
+            </div>
+          </div>
+        </Sec>
+
+        {session.id==="murouchi"&&(
+          <Sec label={lang==="en"?"Certification Management":"認定管理"} color={C.accent}>
+            {(()=>{
+              const eligible = getEligibleBlocks(traineeRecs, trainee.certLevels||{});
+              if(eligible.length===0) return null;
+              return(
+                <div style={{background:`${C.accent}15`,border:`1px solid ${C.accent}40`,padding:"10px 12px",marginBottom:12}}>
+                  <div style={{fontSize:10,color:C.accent,fontFamily:"Courier New,monospace",fontWeight:"bold",marginBottom:6}}>🏆 認定申請可能</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {eligible.map(bt=>(
+                      <div key={bt.val} style={{background:`${C.accent}20`,border:`1px solid ${C.accent}`,padding:"5px 10px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                        <span style={{fontFamily:"Courier New,monospace",fontSize:11,fontWeight:"bold",color:C.accent}}>{BLOCK_SHORT[bt.val]||BLOCK_ABBR[bt.val]}</span>
+                        <span style={{fontSize:9,color:C.accentLight}}>{bt.passCount}例PASS</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            <div style={{fontSize:9,color:C.muted,fontFamily:"Courier New,monospace",marginBottom:8}}>タップで循環： 未 → 認定 → 指導医 → 未</div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {BLOCK_TYPES.filter(bt=>bt.val!=="other").map(bt=>{
+                const cur  = (trainee.certLevels||{})[bt.val]||null;
+                const abbr = BLOCK_SHORT[bt.val]||BLOCK_ABBR[bt.val]||bt.val;
+                const next = cur===null?"cert":null;
+                const bc   = cur==="cert"?"#F5C76A":null;
+                const bg   = cur==="cert"?"rgba(245,199,106,0.13)":null;
+                return(
+                  <button key={bt.val} onClick={async()=>{
+                    await fbUpdateCertLevel(trainee.uid,bt.val,next);
+                    trainee.certLevels={...trainee.certLevels,[bt.val]:next};
+                    if(next===null) delete trainee.certLevels[bt.val];
+                    setForceUpdate(v=>v+1);
+                  }} style={{display:"inline-flex",flexDirection:"column",alignItems:"center",justifyContent:"center",width:52,height:52,borderRadius:"50%",border:bc?`2px solid ${bc}`:`1px dashed ${C.navyLight}`,background:bg||C.navyLight,cursor:"pointer"}}>
+                    <span style={{fontFamily:"Courier New,monospace",fontSize:9,fontWeight:"bold",color:bc||C.muted,textAlign:"center",lineHeight:1.2}}>{abbr}</span>
+                    <span style={{fontSize:7,color:bc||C.muted,marginTop:2}}>{cur===null?"－":(lang==="en"?"Cert":"認定")}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{display:"flex",gap:6,marginTop:12}}>
+              <button onClick={async()=>{await Promise.all(BLOCK_TYPES.filter(bt=>bt.val!=="other").map(bt=>fbUpdateCertLevel(trainee.uid,bt.val,"cert")));BLOCK_TYPES.filter(bt=>bt.val!=="other").forEach(bt=>{trainee.certLevels={...trainee.certLevels,[bt.val]:"cert"};});setForceUpdate(v=>v+1);}} style={{flex:1,padding:"7px 4px",background:"rgba(91,143,212,0.2)",border:"1px solid #5B8FD4",color:"#5B8FD4",fontSize:11,cursor:"pointer"}}>{lang==="en"?"Certify All":"全認定"}</button>
+<button onClick={async()=>{await Promise.all(BLOCK_TYPES.filter(bt=>bt.val!=="other").map(bt=>fbUpdateCertLevel(trainee.uid,bt.val,null)));trainee.certLevels={};setForceUpdate(v=>v+1);}} style={{flex:1,padding:"7px 4px",background:`${C.muted}20`,border:`1px solid ${C.muted}`,color:C.muted,fontSize:11,cursor:"pointer"}}>{lang==="en"?"Reset All":"全リセット"}</button>
+            </div>
+          </Sec>
+        )}
+
+        <BlockProgress records={traineeRecs} certLevels={trainee.certLevels||{}} lang={lang}/>
+
+        <Sec label={lang==="en"?"By Block Type":"ブロック種別"} color={C.blue}>
+          {BLOCK_CATS.map(cat=>{
+            const items = byCategory[cat]||[];
+            if(items.length===0) return null;
+            const catTotal = items.reduce((s,i)=>s+i.count,0);
+            return(
+              <div key={cat} style={{marginBottom:8}}>
+                <button onClick={()=>setOpenCat(openCat===cat?null:cat)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:C.navyMid,border:`1px solid ${C.navyLight}`,borderLeft:`3px solid ${C.blue}`,padding:"10px 14px",cursor:"pointer"}}>
+                  <span style={{fontSize:13,fontWeight:"bold",color:C.white}}>{catLabel(lang||"ja",cat)}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:16,fontWeight:"bold",color:C.accent,fontFamily:"Courier New,monospace"}}>{catTotal}</span>
+                    <span style={{fontSize:12,color:C.muted}}>{openCat===cat?"▲":"▼"}</span>
+                  </div>
+                </button>
+                {openCat===cat&&(
+                  <div style={{background:C.navyMid,border:`1px solid ${C.navyLight}`,borderTop:"none",padding:"8px 14px"}}>
+                    {items.sort((a,b)=>b.count-a.count).map(item=>(
+                      <div key={item.val} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.navyLight}`}}>
+                        <span style={{fontSize:12,color:C.white}}>{item.label}</span>
+                        <span style={{fontSize:14,fontWeight:"bold",color:C.accent,fontFamily:"Courier New,monospace"}}>{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </Sec>
+
+        <Sec label={lang==="en"?"All Cases":"全症例一覧"} color={C.muted}>
+          {traineeRecs.length===0
+            ?<div style={{color:C.muted,fontSize:12,textAlign:"center",padding:"20px 0"}}>症例なし</div>
+            :traineeRecs.map(r=><RecordCard key={r.id} r={r} lang={lang} onSelect={()=>onSelect(r)}/>)
+          }
+        </Sec>
+      </div>
+    </Wrap>
+  );
+}
+
+// ── PROGRESS BARS ────────────────────────────────────────────
+function BlockProgress({records, certLevels, lang}){
+  const TARGET = 5;
+  const passCounts = {};
+  records.forEach(r=>{
+    if(r.overallResult==="pass"&&r.blockType&&r.blockType!=="other"){
+      passCounts[r.blockType]=(passCounts[r.blockType]||0)+1;
+    }
+  });
+
+  const certBlocks = BLOCK_TYPES.filter(bt=>bt.val!=="other"&&(certLevels||{})[bt.val]==="cert");
+  const inProgressBlocks = BLOCK_TYPES.filter(bt=>
+    bt.val!=="other"&&
+    (certLevels||{})[bt.val]!=="cert"&&
+    (passCounts[bt.val]||0)>0
+  );
+
+  if(certBlocks.length===0&&inProgressBlocks.length===0) return null;
+
+  return(
+    <div style={{marginBottom:16}}>
+      {/* 認定済みバッジ */}
+      {certBlocks.length>0&&(
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:"#F5C76A",borderBottom:"1px solid rgba(245,199,106,0.3)",paddingBottom:5,marginBottom:10}}>
+            {lang==="en"?"★ CERTIFIED":"★ 認定済み"}
+          </div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {certBlocks.map(bt=>(
+              <div key={bt.val} style={{padding:"5px 10px",background:"rgba(245,199,106,0.15)",border:"1px solid rgba(245,199,106,0.5)",fontSize:11,color:"#F5C76A",fontWeight:"bold"}}>
+                {lang==="en"?(LANG_BLOCK_TYPES_EN[bt.val]||bt.label):bt.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 未認定・進行中プログレスバー */}
+      {inProgressBlocks.length>0&&(
+        <div>
+          <div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color:C.muted,borderBottom:`1px solid ${C.muted}40`,paddingBottom:5,marginBottom:10}}>
+            {lang==="en"?"IN PROGRESS":"進行中"}
+          </div>
+          {BLOCK_CATS.map(cat=>{
+            const catBlocks = inProgressBlocks.filter(bt=>bt.cat===cat);
+            if(catBlocks.length===0) return null;
+            return(
+              <div key={cat} style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:C.accent,fontFamily:"Courier New,monospace",marginBottom:6}}>
+                  {catLabel(lang||"ja",cat)}
+                </div>
+                {catBlocks.map(bt=>{
+                  const count   = passCounts[bt.val]||0;
+                  const pct     = Math.min(count/TARGET*100,100);
+                  const barColor= count>=TARGET?C.green:C.blue;
+                  const label   = lang==="en"?(LANG_BLOCK_TYPES_EN[bt.val]||bt.label):bt.label;
+                  return(
+                    <div key={bt.val} style={{marginBottom:8}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                        <span style={{fontSize:11,color:C.white}}>{label}</span>
+                        <span style={{fontSize:10,fontFamily:"Courier New,monospace",color:barColor}}>{count}/{TARGET}</span>
+                      </div>
+                      <div style={{height:6,background:C.navyLight,borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:barColor,borderRadius:3,transition:"width 0.3s"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── MY PW SCREEN ─────────────────────────────────────────────
+function MyPwScreen({session,onBack,showToast,lang,onLangChange}){
+  const [myOld,setMyOld]   = useState("");
+  const [myNew,setMyNew]   = useState("");
+  const [myNew2,setMyNew2] = useState("");
+  const [busy,setBusy]     = useState(false);
+  const [msg,setMsg]       = useState({text:"",ok:true});
+
+  const handleChange = async()=>{
+    if(!myOld||!myNew||!myNew2){setMsg({text:"全項目を入力してください",ok:false});return;}
+    if(myNew!==myNew2)          {setMsg({text:"新しいパスワードが一致しません",ok:false});return;}
+    if(myNew.length<6)          {setMsg({text:"6文字以上で設定してください",ok:false});return;}
+    setBusy(true);
+    try{
+      await auth.signInWithEmailAndPassword(toEmail(session.id),myOld);
+      await auth.currentUser.updatePassword(myNew);
+      setMsg({text:"パスワードを変更しました",ok:true});
+      setMyOld("");setMyNew("");setMyNew2("");
+      showToast("パスワードを変更しました");
+    }catch(e){
+      const em=e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"現在のパスワードが違います":`エラー：${e.message}`;
+      setMsg({text:em,ok:false});
+    }
+    setBusy(false);
+  };
+
+  return(
+    <Wrap>
+      <Hdr tag="MY ACCOUNT" title={lang==="en"?"Change Password":"パスワード変更"} sub={session.name} accent={C.blue} left={<BtnIcon onPress={onBack} label="←"/>}/>
+      <div style={{flex:1,overflowY:"auto",padding:"20px 16px"}}>
+        {msg.text&&<div style={{background:msg.ok?`${C.green}18`:`${C.red}18`,border:`1px solid ${msg.ok?C.green:C.red}50`,padding:"9px 12px",marginBottom:16,fontSize:12,color:msg.ok?C.green:C.red,borderRadius:2}}>{msg.text}</div>}
+        <PwInp label={lang==="en"?"Current password":"現在のパスワード"}              value={myOld}  onChange={setMyOld}/>
+        <PwInp label={lang==="en"?"New password (6+ chars)":"新しいパスワード（6文字以上）"}  value={myNew}  onChange={setMyNew}/>
+        <PwInp label={lang==="en"?"Confirm new password":"新しいパスワード（確認）"}        value={myNew2} onChange={setMyNew2}/>
+        <button onClick={handleChange} disabled={busy} style={{width:"100%",padding:14,background:busy?C.navyLight:C.accent,color:C.navy,border:"none",fontWeight:"bold",fontSize:14,cursor:busy?"not-allowed":"pointer",marginTop:8}}>
+          {busy?(lang==="en"?"Changing...":"変更中…"):(lang==="en"?"Change Password":"パスワードを変更")}
+        </button>
+        <div style={{marginTop:24,borderTop:`1px solid ${C.navyLight}`,paddingTop:16}}>
+          <div style={{fontSize:10,color:C.muted,fontFamily:"Courier New,monospace",marginBottom:10}}>{lang==="en"?"LANGUAGE":"言語"}</div>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>onLangChange("ja")} style={{flex:1,padding:12,background:lang==="ja"?`${C.blue}30`:C.navyLight,border:`1.5px solid ${lang==="ja"?C.blue:C.navyLight}`,color:lang==="ja"?C.blue:C.muted,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>日本語</button>
+            <button onClick={()=>onLangChange("en")} style={{flex:1,padding:12,background:lang==="en"?`${C.blue}30`:C.navyLight,border:`1.5px solid ${lang==="en"?C.blue:C.navyLight}`,color:lang==="en"?C.blue:C.muted,fontWeight:"bold",fontSize:14,cursor:"pointer"}}>English</button>
+          </div>
+        </div>
+      </div>
+    </Wrap>
+  );
+}
+
+// ── PRIMITIVES ────────────────────────────────────────────────
+function Wrap({children}){return<div style={{background:C.navy,minHeight:"100vh",display:"flex",flexDirection:"column",maxWidth:480,margin:"0 auto"}}>{children}</div>;}
+function Hdr({tag,title,sub,accent,left,right}){return(<div style={{background:C.navyMid,borderBottom:`3px solid ${accent}`,padding:"14px 16px"}}><div style={{display:"flex",gap:10,alignItems:"center"}}>{left}<div style={{flex:1}}><div style={{fontFamily:"Courier New,monospace",fontSize:9,color:accent,letterSpacing:"2px",marginBottom:3}}>{tag}</div><div style={{fontSize:18,fontWeight:"bold",color:C.white}}>{title}</div>{sub&&<div style={{fontSize:11,color:C.muted}}>{sub}</div>}</div>{right}</div></div>);}
+function BtnIcon({onPress,label}){return<button onClick={onPress} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:"0 4px"}}>{label}</button>;}
+function Sec({label,color,children}){return(<div style={{marginBottom:20}}><div style={{fontSize:9,fontFamily:"Courier New,monospace",letterSpacing:"2px",color,borderBottom:`1px solid ${color}40`,paddingBottom:5,marginBottom:10}}>{label}</div>{children}</div>);}
+function Fld({label,children}){return(<div style={{marginBottom:10}}><div style={{fontSize:10,color:C.muted,marginBottom:4,fontFamily:"Courier New,monospace"}}>{label}</div>{children}</div>);}
+function Inp({type,value,onChange,placeholder,lang}){
+  const nowTime=()=>{const n=new Date();const pad=x=>String(x).padStart(2,"0");return`${pad(n.getHours())}:${pad(n.getMinutes())}`;};
+  if(type==="time")return(<div style={{display:"flex",gap:6,alignItems:"center"}}><input type="time" value={value} onChange={e=>onChange(e.target.value)} style={{flex:1,background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:"10px 8px",fontSize:13,outline:"none"}}/><button onClick={()=>onChange(nowTime())} style={{flexShrink:0,padding:"9px 10px",background:C.navyLight,border:`1px solid ${C.accent}`,color:C.accent,fontSize:11,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"Courier New,monospace"}}>{lang==="en"?"Now":"現在時刻"}</button></div>);
+  return<input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{width:"100%",background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:"10px 8px",fontSize:13,outline:"none"}}/>;
+}
+function RBtn({label,active,onPress,color}){return<button onClick={onPress} style={{padding:"9px 14px",background:active?`${color}25`:C.navyLight,color:active?color:C.muted,border:`1px solid ${active?color:C.navyLight}`,fontSize:13,cursor:"pointer"}}>{label}</button>;}
+function CkItem({label,checked,onChange}){return(<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}><button onClick={()=>onChange(!checked)} style={{width:20,height:20,background:checked?C.accent:C.navyLight,border:`1.5px solid ${checked?C.accent:C.muted}`,color:C.navy,fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>{checked?"✓":""}</button><span style={{fontSize:12,color:checked?C.white:C.muted}}>{label}</span></div>);}
+function DRow({label,val,warn}){return(<div style={{display:"flex",gap:12,padding:"8px 0",borderBottom:`1px solid ${C.navyLight}`}}><span style={{fontSize:10,color:C.muted,fontFamily:"Courier New,monospace",minWidth:110,paddingTop:2}}>{label}</span><span style={{fontSize:13,color:warn?C.red:C.white,flex:1}}>{val||"—"}</span></div>);}
+function Label({children}){return<div style={{fontSize:10,color:C.muted,fontFamily:"Courier New,monospace",letterSpacing:"1px",marginBottom:8}}>{children}</div>;}
+function PwInp({label,value,onChange}){const[show,setShow]=useState(false);return(<Fld label={label}><div style={{position:"relative"}}><input type={show?"text":"password"} value={value} onChange={e=>onChange(e.target.value)} style={{...inputSt,paddingRight:44}} autoCapitalize="none"/><button onClick={()=>setShow(v=>!v)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:14}}>{show?"🙈":"👁"}</button></div></Fld>);}
+const inputSt={width:"100%",background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.white,padding:"12px 10px",fontSize:14,outline:"none"};
+const outBtn={background:C.navyLight,border:`1px solid ${C.navyLight}`,color:C.muted,padding:"6px 12px",fontSize:12,cursor:"pointer"};
+
+// ── MOUNT ─────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
+</body>
+</html>
