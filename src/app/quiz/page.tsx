@@ -11,8 +11,11 @@ import { SRS_OPTIONS, type SrsRating } from "@/lib/srs";
 
 // ─── サウンド ────────────────────────────────────────
 const soundCache: Record<string, HTMLAudioElement> = {};
+// BGM がオフのときは効果音（クリック・正誤）も鳴らさない
+let sfxEnabled = false;
 function playSound(type: "correct" | "incorrect" | "click") {
   if (typeof window === "undefined") return;
+  if (!sfxEnabled) return;
   const urls: Record<string, string> = {
     correct: "/sounds/right.mp3",
     incorrect: "/sounds/wrong.mp3",
@@ -227,6 +230,7 @@ export default function QuizPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    sfxEnabled = bgmEnabled;
     if (bgmEnabled) {
       if (!bgmRef.current || bgmRef.current.src !== window.location.origin + `/sounds/bgm${bgmTrack}.mp3`) {
         if (bgmRef.current) { bgmRef.current.pause(); bgmRef.current = null; }
