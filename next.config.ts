@@ -1,23 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'export',
   typescript: {
     ignoreBuildErrors: true,
-  },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "2mb",
-    },
-  },
-  async headers() {
-    return [
-      {
-        source: "/api/explanation/:path*",
-        headers: [
-          { key: "Connection", value: "keep-alive" },
-        ],
-      },
-    ];
   },
 };
 

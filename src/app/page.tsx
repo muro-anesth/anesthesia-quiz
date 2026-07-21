@@ -1,4 +1,9 @@
-import { redirect } from "next/navigation";
+"use client";
+import { useEffect } from "react";
+
 export default function Home() {
-  redirect("/quiz");
+  useEffect(() => {
+    window.location.replace("/login");
+  }, []);
+  return null;
 }
