@@ -47,3 +47,6 @@ serviceAccountKey*.json
 *serviceAccount*.json
 *-firebase-adminsdk-*.json
 .firebase/
+
+# Claude Code のローカル設定（端末固有）
+.claude/settings.local.json
