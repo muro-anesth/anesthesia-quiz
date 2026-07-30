@@ -12,6 +12,40 @@
 
 ## 現在地（最新を上に）
 
+### 2026-07-31 — 棚卸し（解説）と、**Gemini APIキーを .env.local へ退避**
+
+**① 解説は消えていない。事前生成に移行済みだった**
+
+旧版は API ルート `src/app/api/explanation/[id]/route.ts` で**オンデマンド生成**し
+DB にキャッシュしていた（`992ca7e`）。静的書き出し（`output: export`）では
+API ルートを置けないので、この経路は移行時に消えている。
+ただし**事前生成に置き換わっていた**。
+
+- `scripts/generate-explanations.mjs`（Gemini）→ `scripts/explanations-cache.json`
+  （1.85MB・358件・2026-05-21 生成・1問2000〜2700字）
+- `scripts/import-to-firestore.mjs:46` が `explanation: cache[key]` で取り込み
+- **Firestore の `questions` は 358問すべてに解説あり（100%）を実機確認**
+
+> ⚠️ **`quiz-data/*/quiz.json` の解説は 0件**だが、これは正常。
+> アプリが読むのは Firestore で、解説はキャッシュ側から合流する。
+> ここを見て「解説が無い」と早合点しないこと（2026-07-31 に一度やった）。
+
+**② Gemini APIキーがソース直書きだったのを `.env.local` へ移した**
+
+`generate-explanations.mjs` と `generate-categories.mjs` の2本に直書きされていた。
+`process.env.GEMINI_API_KEY` を読む形にし、未設定なら止まるようにした。
+
+```
+export $(grep GEMINI_API_KEY .env.local | xargs) && node scripts/generate-explanations.mjs
+```
+
+> ⚠️ **キーは `2be3b64` のコミット履歴に残っている**（`git log -S` で確認。該当は1コミット）。
+> ファイルから消しても履歴からは復元できるので、**このリポジトリを公開する場合は、
+> 先に履歴からの除去かキーの失効が要る**。private のまま使う前提で、
+> 失効はせず退避のみとした（2026-07-31 利用者判断）。
+> ※ `src/lib/firebase.ts` の `apiKey` は別物。Firebase の Web API キーで公開前提。
+
+
 ### 2026-07-26 — WORKLOG 新設。git は clean・origin と同期済み
 
 > **この日より前の記録は git log から再構成したもの**で、実際のチャットの経緯ではありません。
@@ -42,7 +76,10 @@
 
 ## 次にやること
 
-1. Firebase 移行後の動作確認が済んでいるか（旧 Prisma 時代の機能で消えたものがないか）の棚卸し
+1. ~~Firebase 移行後の棚卸し（旧 Prisma 時代の機能で消えたものがないか）~~
+   → **2026-07-31 に解説まわりを確認済み。消えていない**（下の現在地）。
+   未確認で残っているのは、旧コミットにある **年度・カテゴリの複数選択フィルタ**（`59e52b2`）、
+   **フィルタタブと統計画面**（`54d3551`）、**ログイン時の効果音**（`0c9e095`）の3つ
 
 ---
 

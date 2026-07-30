@@ -2,7 +2,15 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const GEMINI_API_KEY = 'AIzaSyCuC7wLdb82GkuzvGpilrSmJLMlC4DPK04';
+// APIキーはソースに書かない。`.env.local`（gitignore 済み）に置いて渡す:
+//   export $(grep GEMINI_API_KEY .env.local | xargs) && node scripts/generate-explanations.mjs
+// ⚠️ 以前は直書きされており、**コミット 2be3b64 の履歴に残っている**。
+//    このリポジトリを公開する場合は、先に履歴からの除去かキーの失効が要る。
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY が未設定です。.env.local を読み込んでから実行してください。');
+  process.exit(1);
+}
 const YEARS = ['2023a', '2023b', '2024a', '2024b', '2025a', '2025b'];
 const OUTPUT_FILE = 'scripts/explanations-cache.json';
 const DELAY_MS = 2000; // API制限対策

@@ -7,7 +7,15 @@ const serviceAccount = JSON.parse(readFileSync('scripts/serviceAccountKey.json')
 initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore();
 
-const GEMINI_API_KEY = 'AIzaSyCuC7wLdb82GkuzvGpilrSmJLMlC4DPK04';
+// APIキーはソースに書かない。`.env.local`（gitignore 済み）に置いて渡す:
+//   export $(grep GEMINI_API_KEY .env.local | xargs) && node scripts/generate-categories.mjs
+// ⚠️ 以前は直書きされており、**コミット 2be3b64 の履歴に残っている**。
+//    このリポジトリを公開する場合は、先に履歴からの除去かキーの失効が要る。
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+  console.error('GEMINI_API_KEY が未設定です。.env.local を読み込んでから実行してください。');
+  process.exit(1);
+}
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
