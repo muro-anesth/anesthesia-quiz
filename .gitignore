@@ -50,3 +50,7 @@ serviceAccountKey*.json
 
 # Claude Code のローカル設定（端末固有）
 .claude/settings.local.json
+
+# firebase CLI が吐くログ（実行のたびに増える）
+firebase-debug*.log
+firestore-debug*.log
