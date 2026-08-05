@@ -214,6 +214,19 @@ export async function getUsers() {
   return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
 }
 
+// ⚠️ **アカウントの作成はここ（Functions 経由）でしか行わない。**
+//    ブラウザから `createUserWithEmailAndPassword` を呼ぶ作りだと、
+//    サインアップを開けておくしかなく、誰でもアカウントを作って問題集を
+//    全部読める状態になる。
+export async function adminCreateUser(
+  username: string, password: string, role: 'admin' | 'user'
+) {
+  const functions = getFunctions(app, 'us-central1');
+  const fn = httpsCallable(functions, 'adminCreateUser');
+  const res = await fn({ username, password, role });
+  return res.data as { success: boolean; uid: string };
+}
+
 export async function adminChangePassword(targetUid: string, newPassword: string) {
   const functions = getFunctions(app, 'us-central1');
   const changeUserPassword = httpsCallable(functions, 'changeUserPassword');

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import {
+import { adminCreateUser,
   logout, getUserProfile, getNextQuestion, getYears, getCategories,
   saveAttempt, getReviewQueue, getStats, getUsers, adminChangePassword,
   getQuestionsForYear, saveExamResult, getExamHistory
@@ -124,20 +124,14 @@ function AdminPanel({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setLoading(true); setMsg("");
     try {
-      const { initializeApp, getApps } = await import('firebase/app');
-      const { getAuth, createUserWithEmailAndPassword, signOut: fbSignOut } = await import('firebase/auth');
-      const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-      const config = (await import('@/lib/firebase')).default.options;
-      const secondary = getApps().find(a => a.name === 'secondary') ?? initializeApp(config, 'secondary');
-      const secAuth = getAuth(secondary);
-      const secDb = getFirestore(secondary);
-      const email = `${username}@${DOMAIN}`;
-      const cred = await createUserWithEmailAndPassword(secAuth, email, password);
-      await setDoc(doc(secDb, 'users', cred.user.uid), { username, email, role, createdAt: new Date() });
-      await fbSignOut(secAuth);
+      // ⚠️ **ブラウザから作らない。** 以前は別インスタンスを立てて
+      //    `createUserWithEmailAndPassword` を呼んでいたが、その方式では
+      //    サインアップを開けておくしかなく、誰でもアカウントを作れてしまう。
+      //    作成は Functions（Admin SDK）へ移し、サインアップ自体を閉じた。
+      await adminCreateUser(username, password, role as 'admin' | 'user');
       setMsg("✓ ユーザーを追加しました");
       setUsername(""); setPassword("");
-    } catch (err: any) { setMsg("エラー: " + err.message); }
+    } catch (err: any) { setMsg("エラー: " + (err?.message || err)); }
     setLoading(false);
   }
 
