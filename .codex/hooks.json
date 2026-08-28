@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 || exit 0; git pull --ff-only --autostash 2>&1 | tail -1 | jq -Rs '{systemMessage: (\"[git pull] \" + (.|rtrimstr(\"\\n\")))}'",
+            "timeout": 30,
+            "statusMessage": "GitHubから最新を取得中..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null 2>&1 || exit 0; git rev-parse --git-dir >/dev/null 2>&1 || exit 0; git status --porcelain 2>/dev/null | head -1 | jq -Rs 'if (.|rtrimstr(\"\\n\")) == \"\" then {systemMessage: \"[git] 未コミットの変更はありません\"} else {systemMessage: \"[git] ⚠️ 未コミットの変更があります。commit & push を忘れずに（WORKLOG.md の更新も）\"} end'",
+            "timeout": 30,
+            "statusMessage": "作業ツリーを確認中..."
+          }
+        ]
+      }
+    ]
+  }
+}

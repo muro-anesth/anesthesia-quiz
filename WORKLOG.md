@@ -96,10 +96,10 @@ export $(grep GEMINI_API_KEY .env.local | xargs) && node scripts/generate-explan
 
 ## プロジェクト概要
 
-- **周術期管理チーム試験のクイズアプリ**（`~/Desktop/anesthesia-quiz`）
+- **周術期管理チーム試験のクイズアプリ**（`~/Desktop/ClaudeProject/anesthesia-quiz`）
 - Firebase プロジェクト: **`periop-quiz`** / GitHub: https://github.com/muro-anesth/anesthesia-quiz
 - Next.js 16 + React 19 + Tailwind v4 + Firebase（Auth / Firestore / Hosting / Functions）。静的書き出し
 - 問題データは `quiz-data/` と `周術期管理チームクイズ形式/` にある
 - **紛らわしい兄弟プロジェクト**（名前が似ているだけで中身は別物）:
-  - `~/Desktop/anesthesia-exam-game` — 麻酔科**専門医試験**の過去問アプリ（ゲーミフィケーション付き）
-  - `~/Desktop/anesthesia-exam-quiz` — その古い Prisma/NextAuth 版
+  - `~/Desktop/ClaudeProject/anesthesia-exam-game` — 麻酔科**専門医試験**の過去問アプリ（ゲーミフィケーション付き）
+  - `~/Desktop/ClaudeProject/anesthesia-exam-quiz` — その古い Prisma/NextAuth 版
