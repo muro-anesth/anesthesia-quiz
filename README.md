@@ -60,6 +60,15 @@ functions/                   Cloud Functions
 - `questions/**` — 認証済みなら読み取り可、書き込みは既存muro UIDのみ
 - `attempts` / `progress` / `examHistory` — 本人のみ読み書き
 
+## iPhoneのホーム画面から使う
+
+Safariで本番URLを開き、共有 →「ホーム画面に追加」。項目が表示されるiOSでは「Webアプリとして開く」をオンにする。
+2026-09-13にstandalone表示・ルート全体のscope・Apple Web App設定を追加した。
+以前のアイコンで上下にブラウザ操作バーが出る場合は、新しく追加したアイコンで確認する（再ログインが必要な場合あり）。
+通常のSafariタブや別アプリ内のブラウザでは操作バーが表示される。アプリからそれを強制的に消すことはできない。
+設定は `public/manifest.webmanifest` と `src/app/layout.tsx`。`/login` と `/quiz` を同じアプリの範囲に含める。
+オフライン機能は実装していない。iPhone実機での操作バー解消は利用者の確認待ち。
+
 ## 開発
 
 ```bash

@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "周術期クイズ",
+  "short_name": "周術期クイズ",
+  "description": "周術期管理チーム試験対策",
+  "lang": "ja",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d1526",
+  "theme_color": "#0d1526",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
