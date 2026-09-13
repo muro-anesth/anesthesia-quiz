@@ -134,7 +134,7 @@ async function setup(options = {}) {
     "@/lib/firebase": { auth: {}, db: {} },
     "@/lib/firebaseHelpers": helpers,
     "@/lib/srs": {
-      SRS_OPTIONS: [{ key: "good", label: "良い", sub: "3日後" }],
+      SRS_OPTIONS: load("src/lib/srs.ts", {}).SRS_OPTIONS,
     },
     "firebase/firestore": {
       doc: (_, c, id) => id,
@@ -175,10 +175,10 @@ test("review follows queue and finishes without random questions", async () => {
   await s.click("復習を開始");
   assert.match(s.text(), /問題 q1/);
   await s.click("選択肢A");
-  await s.click("良い");
+  await s.click("思い出せた");
   assert.match(s.text(), /問題 q2/);
   await s.click("選択肢A");
-  await s.click("良い");
+  await s.click("思い出せた");
   assert.match(s.text(), /お疲れさまでした/);
   assert.equal(s.calls.includes("random"), false);
   assert.deepEqual(
@@ -193,7 +193,7 @@ test("finish waits for rating and saves last answer before summary", async () =>
   await s.click("選択肢A");
   await s.click("今日はここまで");
   assert.match(s.text(), /この回答を保存して終了/);
-  await s.click("良い");
+  await s.click("思い出せた");
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   assert.match(s.text(), /お疲れさまでした/);
   await s.close();
@@ -204,11 +204,11 @@ test("failed saving stays on same review question and retries with same attempt 
   await s.click("復習を開始");
   await s.click("選択肢A");
   s.fail(true);
-  await s.click("良い");
+  await s.click("思い出せた");
   assert.match(s.text(), /失敗しました/);
   assert.match(s.text(), /問題 q1/);
   s.fail(false);
-  await s.click("良い");
+  await s.click("思い出せた");
   const saves = s.calls.filter(Array.isArray);
   assert.equal(saves[0][5], saves[1][5]);
   assert.match(s.text(), /問題 q2/);
@@ -328,12 +328,12 @@ test("home after answering also requests saving rather than dropping answer", as
   await s.click("選択肢A");
   await s.click("← ホーム");
   assert.match(s.text(), /この回答を保存して終了/);
-  await s.click("良い");
+  await s.click("思い出せた");
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   assert.match(s.text(), /お疲れさまでした/);
   await s.close();
 });
-test("screen markup and styles match the pre-refactor baseline", async () => {
+test("screen markup matches original unaffected screens and reviewed answer panel baseline", async () => {
   const hashes = {};
   const crypto = require("node:crypto");
   const snap = (s, name) => {
@@ -364,7 +364,7 @@ test("screen markup and styles match the pre-refactor baseline", async () => {
   await s.click("×");
   await s.click("今日はここまで");
   snap(s, "finish-prompt");
-  await s.click("良い");
+  await s.click("思い出せた");
   snap(s, "summary");
   await s.click("ホームに戻る");
   await s.click("試験モード");
@@ -405,13 +405,91 @@ test("screen markup and styles match the pre-refactor baseline", async () => {
   await s.click("選択肢B");
   snap(s, "multi-answered");
   await s.close();
-  if (process.env.RECORD_BASELINE === "1")
+  // Preserve the original refactor baseline for screens outside this UI change.
+  const changed = [
+    "review-question",
+    "answered",
+    "explanation",
+    "finish-prompt",
+    "exam-question",
+    "exam-warning",
+    "exam-answered",
+    "exam-b",
+    "multi-selected",
+    "multi-answered",
+  ];
+  if (process.env.RECORD_ANSWER_PANEL_BASELINE === "1") {
     fs.writeFileSync(
-      "tests/screen-baseline.json",
-      JSON.stringify(hashes, null, 2) + "\n",
+      "tests/answer-panel-baseline.json",
+      JSON.stringify(
+        Object.fromEntries(changed.map((name) => [name, hashes[name]])),
+        null,
+        2,
+      ) + "\n",
     );
-  assert.deepEqual(
-    hashes,
-    JSON.parse(fs.readFileSync("tests/screen-baseline.json")),
+  }
+  const updated = JSON.parse(
+    fs.readFileSync("tests/answer-panel-baseline.json"),
   );
+  assert.deepEqual(Object.keys(updated).sort(), [...changed].sort());
+  assert.deepEqual(hashes, {
+    ...JSON.parse(fs.readFileSync("tests/screen-baseline.json")),
+    ...updated,
+  });
+});
+
+test("each recall choice saves the matching rating and advances even after an incorrect answer", async () => {
+  for (const [label, rating] of [
+    ["思い出せない", "again"],
+    ["迷った", "hard"],
+    ["思い出せた", "good"],
+    ["余裕で分かった", "easy"],
+  ]) {
+    const s = await setup();
+    await s.click("復習モード");
+    await s.click("復習を開始");
+    assert.equal(
+      s.renderer.root.findAllByProps({ "aria-label": "回答結果と次の操作" })
+        .length,
+      0,
+    );
+    await s.click("選択肢B");
+    assert.match(s.text(), /不正解/);
+    assert.match(s.text(), /正答：A/);
+    assert.match(s.text(), /回答を保存して次へ/);
+    const dock = s.renderer.root.findByProps({
+      "aria-label": "回答結果と次の操作",
+    });
+    assert.equal(dock.props.style.flexShrink, 0);
+    const scroll = s.renderer.root.findByProps({
+      "aria-label": "問題と選択肢",
+    });
+    assert.equal(scroll.props.style.overflowY, "auto");
+    assert.equal(
+      scroll.findAllByProps({ "aria-label": "回答結果と次の操作" }).length,
+      0,
+    );
+    await s.click(label);
+    assert.equal(s.calls.filter(Array.isArray)[0][4], rating);
+    assert.match(s.text(), /問題 q2/);
+    await s.close();
+  }
+});
+
+test("ending can be cancelled; opening and closing explanation never saves an answer", async () => {
+  const s = await setup();
+  await s.click("復習モード");
+  await s.click("復習を開始");
+  await s.click("選択肢A");
+  await s.click("今日はここまで");
+  assert.match(s.text(), /この回答を保存して終了/);
+  await s.click("解説を見る");
+  assert.equal(s.renderer.root.findAllByProps({ role: "dialog" }).length, 1);
+  await s.click("×");
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  await s.click("終了をやめて、続ける");
+  await s.click("思い出せた");
+  assert.match(s.text(), /問題 q2/);
+  assert.equal(s.calls.filter(Array.isArray).length, 1);
+  await s.close();
 });

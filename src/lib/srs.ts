@@ -63,8 +63,8 @@ export const SRS_OPTIONS: {
   border: string;
   bg: string;
 }[] = [
-  { key: "again", label: "もう一度", sub: "すぐ",  color: "#f87171", border: "rgba(239,68,68,0.3)",   bg: "rgba(239,68,68,0.15)"  },
-  { key: "hard",  label: "難しい",   sub: "1日後", color: "#fb923c", border: "rgba(249,115,22,0.3)",  bg: "rgba(249,115,22,0.15)" },
-  { key: "good",  label: "良い",     sub: "3日後", color: "#38bdf8", border: "rgba(14,165,233,0.3)",  bg: "rgba(14,165,233,0.15)" },
-  { key: "easy",  label: "簡単",     sub: "7日後", color: "#34d399", border: "rgba(16,185,129,0.3)",  bg: "rgba(16,185,129,0.15)" },
+  { key: "again", label: "思い出せない", sub: "早めに復習",  color: "#f87171", border: "rgba(239,68,68,0.3)",   bg: "rgba(239,68,68,0.15)"  },
+  { key: "hard",  label: "迷った",       sub: "短めの間隔で復習", color: "#fb923c", border: "rgba(249,115,22,0.3)",  bg: "rgba(249,115,22,0.15)" },
+  { key: "good",  label: "思い出せた",   sub: "通常の間隔で復習", color: "#38bdf8", border: "rgba(14,165,233,0.3)",  bg: "rgba(14,165,233,0.15)" },
+  { key: "easy",  label: "余裕で分かった", sub: "長めの間隔で復習", color: "#34d399", border: "rgba(16,185,129,0.3)",  bg: "rgba(16,185,129,0.15)" },
 ];
