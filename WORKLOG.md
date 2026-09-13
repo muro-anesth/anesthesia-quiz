@@ -20,7 +20,9 @@
 - 既存アイコンを実寸1254×1254で参照。manifestの配信形式と再検証用キャッシュ設定を追加。
 - 保存済みホームアイコンの再追加手順をREADMEに記録。スクリーンショットだけでは起動方法・iOSの保存状態まで断定できず、実機での解消は未検証。
 - 既存回帰テスト7件（24画面状態の一致を含む）成功。型チェック付きビルド成功。生成HTMLの全3ルートのmanifestリンク・起動設定、manifestの範囲・アイコン実寸を検証。
-- Next.jsが出力するmobile-web-app-capableに加え、旧iOS互換のapple-mobile-web-app-capableも明示。
+- Next.jsが出力するmobile-web-app-capableに加え、旧iOS互換のapple-mobile-web-app-capableも明示。再ビルドし全3ルートで出力確認済み。
+- 実装 `53f4b0a` をmainにpush。GitHub Actions `34737392342` 成功後、Hostingのみ本番反映。
+- 公開 /・/login・/quiz・manifestのHTTP 200とローカル生成物との完全一致、manifestのContent-Type・no-cacheを確認。iPhone実機の最終確認は利用者待ち。
 
 
 ### 2026-09-13 — 画面と操作処理の分割
