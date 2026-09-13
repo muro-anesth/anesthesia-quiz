@@ -12,6 +12,48 @@
 
 ## 現在地（最新を上に）
 
+### 2026-09-13 — 引き継ぎ（Claude → Codex）
+
+2026-09-13 から開発は Codex に引き継ぐ（同日すでに Codex がコミットしている）。横断の事項は `kameda-tools/HANDOFF.md`。
+
+#### 本番への反映状況
+- **Hosting ＝ HEAD**。`https://periop-quiz.web.app` の `index.html` `login.html` `quiz.html` `manifest.webmanifest` がローカル `out/`（09-13 13:31）とバイト一致。最終デプロイ 09-13 13:32
+- ルール・Functions は `1a53a0b` の反映を 09-13 の節で確認済み
+- `out/` に iCloud の複製（「index 2.html」、空の「sounds 3」など）23件があるが、配信はされていない（404 を確認）
+
+#### Git の未保存・未共有
+- 作業ツリー清浄、`main` ＝ `origin/main`。ブランチ `refactor/quiz-screen-split` はマージ済みで削除可。タグ `backup/pre-screen-split-20260913` は push 済み。ローカルのバックアップは `~/ProjectBackups/anesthesia-quiz/20260913-125933/`
+- remote は 09-13 に HTTPS + `gh auth git-credential` に変えられた。**この環境では `gh auth status` が token invalid**。一方 SSH（`~/.ssh/id_ed25519`）は通る。他のリポジトリは全部 SSH。**どちらが通るかは環境依存**
+
+#### 会話にしか残っていない決定事項・重要事項
+- ⚠️ **GitHub リポジトリが public になっている**（未認証の API で `visibility: public`。exam-game と exam-quiz は private）。07-31 の「private のまま使う前提で Gemini API キーは失効せず退避のみ」という利用者判断の**前提が崩れている**。キーは `2be3b64` の履歴に残っている。**キーの失効（Google AI Studio で再発行）か、リポジトリを private に戻すか、履歴の除去が必要**。いつ public になったかは未確認
+- 誰でもアカウントを作れる状態を塞いだ（`27378ec`、08-06）: 作成を Functions `adminCreateUser` へ移し `disabledUserSignup` を true
+- 管理者は UID 固定。`firestore.rules` の `isAdmin()` と `functions/index.js` の `ADMIN_UID` の**2か所に同じ UID**。`users/*` のクライアント書き込みは全面禁止（`1a53a0b`）。管理者は既存の muro アカウントのみ、UID を勝手に変えない（09-13、利用者の指示。AGENTS.md）
+- `quiz-data/*/quiz.json` の解説が 0件なのは正常。解説は `scripts/explanations-cache.json` から Firestore に合流（`bef2db0`）
+- PuzzleProject が `quiz-data/*/quiz.json` を正本として読む。形式を変えない
+
+#### 未完了作業
+- 復習一覧の待ち時間（100件を全取得してから表示。原因未確定、段階読み込みは未実施）
+- 本番の実アカウントでのログイン後操作と、iPhone 実機での回答パネル確認
+- Gemini API キーの失効（上記）
+- Admin SDK 鍵 `scripts/serviceAccountKey.json` が **Desktop 配下＝iCloud 同期下**にある（exam-game で問題にしたのと同じ状態、未対処）。`~/.config/kameda/` へ移す
+
+#### 既知の不具合
+- 復習一覧の遅延（上記）
+
+#### 注意点
+- `ADMIN_UID` の二重定義。片方だけ変えると権限がずれる
+- `tests/screen-baseline.json`（24状態）と `tests/answer-panel-baseline.json`（10状態）は失敗を隠す目的で更新しない
+- `npm run test:rules` は Firebase CLI のログインが必要
+- `scripts/*.mjs` は `scripts/serviceAccountKey.json` を相対パス固定で読む。リポジトリ直下から実行
+- Functions は Node 24。Hosting の公開は `out`、ビルド先行
+- iCloud のドット無し複製ディレクトリに中身が入ると `**/* [0-9].*` に掛からず配信されうる
+
+#### 認証情報の保管場所（値は書かない）
+- Admin SDK 鍵: `scripts/serviceAccountKey.json`（600、gitignore 済・未追跡）
+- `.env.local`: `GEMINI_API_KEY`（現用。`generate-explanations.mjs` `generate-categories.mjs`）。ほかの `AUTH_SECRET` `DATABASE_URL` `EMAIL_*` `NEXTAUTH_URL` は Prisma/NextAuth 時代の廃用値。`.env` の `DATABASE_URL` も廃用
+- Firebase のオーナーは `muro.nerve@gmail.com`、アプリ管理者は `greenfieldsmeister@gmail.com`
+
 ### 2026-09-13 — 回答後の固定操作パネルと説明の改善
 
 - 利用者要望: 長い問題で回答後の正誤や次の操作が画面外になる。「今日はここまで」「もう一度〜簡単」の意味を初めて使う人にも明示する。
