@@ -2,6 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
+const ADMIN_UID = "kuredXmbTWhCfx4dVtvdUyiZsUq1";
 
 // adminによる他ユーザーのパスワード変更
 exports.changeUserPassword = onCall(async (request) => {
@@ -16,7 +17,7 @@ exports.changeUserPassword = onCall(async (request) => {
     .doc(request.auth.uid)
     .get();
 
-  if (!callerDoc.exists || callerDoc.data().role !== "admin") {
+  if (request.auth.uid !== ADMIN_UID || !callerDoc.exists || callerDoc.data().role !== "admin") {
     throw new HttpsError("permission-denied", "管理者権限が必要です");
   }
 
@@ -45,11 +46,14 @@ exports.adminCreateUser = onCall(async (request) => {
   }
   const callerDoc = await admin.firestore()
     .collection("users").doc(request.auth.uid).get();
-  if (!callerDoc.exists || callerDoc.data().role !== "admin") {
+  if (request.auth.uid !== ADMIN_UID || !callerDoc.exists || callerDoc.data().role !== "admin") {
     throw new HttpsError("permission-denied", "管理者権限が必要です");
   }
 
   const { username, password, role } = request.data;
+  if (role && role !== "user") {
+    throw new HttpsError("invalid-argument", "管理者は既存のmuroアカウントのみです");
+  }
   if (!username || !/^[A-Za-z0-9_.-]{2,32}$/.test(username)) {
     throw new HttpsError("invalid-argument",
       "ユーザー名は英数字・._- の2〜32文字で指定してください");
@@ -63,7 +67,7 @@ exports.adminCreateUser = onCall(async (request) => {
     const user = await admin.auth().createUser({ email, password });
     await admin.firestore().collection("users").doc(user.uid).set({
       username, email,
-      role: role === "admin" ? "admin" : "user",
+      role: "user",
       createdAt: new Date(),
     });
     return { success: true, uid: user.uid };

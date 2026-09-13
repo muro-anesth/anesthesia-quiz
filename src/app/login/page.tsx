@@ -37,12 +37,12 @@ function LoginForm() {
         <p style={{ color:"#4a7fa5", fontSize:13, marginBottom:32 }}>サインインしてください</p>
         <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:14 }}>
           <input type="text" required placeholder="ユーザー名" value={username} onChange={(e) => setUsername(e.target.value)}
-            style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%", outline:"none", width:"100%", boxSizing:"border-box" as const }}/>
+            style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%", boxSizing:"border-box" as const }}/>
           <input type="password" required placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)}
-            style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%", outline:"none", width:"100%", boxSizing:"border-box" as const }}/>
+            style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"13px 16px", color:"#e2eaf4", fontSize:15, outline:"none", width:"100%", boxSizing:"border-box" as const }}/>
           {error && <div style={{ color:"#f87171", fontSize:13 }}>{error}</div>}
           <button type="submit" disabled={loading}
-            style={{ background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", border:"none", borderRadius:10, padding:"14px", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", opacity:loading?0.7:1, cursor:"pointer", opacity:loading?0.7:1, boxSizing:"border-box" as const }}>
+            style={{ background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", border:"none", borderRadius:10, padding:"14px", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", opacity:loading?0.7:1, boxSizing:"border-box" as const }}>
             {loading ? "ログイン中..." : "ログイン"}
           </button>
         </form>

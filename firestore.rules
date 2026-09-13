@@ -1,23 +1,26 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    // Existing muro account. Roles and usernames cannot grant administrator access.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'kuredXmbTWhCfx4dVtvdUyiZsUq1';
+    }
     match /users/{userId} {
-      allow get: if request.auth != null && request.auth.uid == userId;
-      allow list: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if isAdmin();
+      // Profiles are managed only by the Admin SDK.
+      allow write: if false;
     }
-
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /users/{userId}/{collectionName}/{documentId} {
+      allow read, write: if isOwner(userId) &&
+        collectionName in ['attempts', 'progress', 'examHistory'];
     }
-
     match /questions/{document=**} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if isAdmin();
     }
   }
 }

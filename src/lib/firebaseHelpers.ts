@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, updateDoc,
-  query, where, orderBy, limit, Timestamp
+  query, where, orderBy, limit, Timestamp, runTransaction
 } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword, signOut as firebaseSignOut
@@ -75,53 +75,43 @@ export async function saveAttempt(
   questionId: string,
   selected: string,
   answer: string,
-  rating: SrsRating
+  rating: SrsRating,
+  attemptId?: string
 ) {
   const normalize = (s: string) => s.split('').sort().join('');
   const isCorrect = normalize(selected) === normalize(answer);
   const now = new Date();
 
-  // 成績記録
-  const attemptRef = doc(collection(db, 'users', uid, 'attempts'));
-  await setDoc(attemptRef, {
-    questionId,
-    selected,
-    isCorrect,
-    answeredAt: Timestamp.fromDate(now),
-  });
-
-  // SRSカード更新
+  // A stable ID makes retries idempotent. Attempt and SRS progress commit together.
+  const attemptRef = attemptId
+    ? doc(db, 'users', uid, 'attempts', attemptId)
+    : doc(collection(db, 'users', uid, 'attempts'));
   const cardRef = doc(db, 'users', uid, 'progress', questionId);
-  const cardSnap = await getDoc(cardRef);
-  const existing = cardSnap.exists() ? cardSnap.data() : null;
-
-  const srsInput = existing ? {
-    stability: existing.stability,
-    difficulty: existing.difficulty,
-    elapsedDays: existing.elapsedDays,
-    scheduledDays: existing.scheduledDays,
-    reps: existing.reps,
-    lapses: existing.lapses,
-    state: existing.state,
-    lastReview: existing.lastReview?.toDate() ?? null,
-    due: existing.due?.toDate() ?? now,
-  } : null;
-
-  const { nextCard, nextDue } = scheduleCard(srsInput, rating, now);
-
-  await setDoc(cardRef, {
-    due: Timestamp.fromDate(nextDue),
-    stability: nextCard.stability,
-    difficulty: nextCard.difficulty,
-    elapsedDays: nextCard.elapsed_days,
-    scheduledDays: nextCard.scheduled_days,
-    reps: nextCard.reps,
-    lapses: nextCard.lapses,
-    state: nextCard.state,
-    lastReview: Timestamp.fromDate(now),
+  return runTransaction(db, async transaction => {
+    const attemptSnap = await transaction.get(attemptRef);
+    if (attemptSnap.exists()) return { isCorrect: attemptSnap.data().isCorrect };
+    const cardSnap = await transaction.get(cardRef);
+    const existing = cardSnap.exists() ? cardSnap.data() : null;
+    const srsInput = existing ? {
+      stability: existing.stability, difficulty: existing.difficulty,
+      elapsedDays: existing.elapsedDays, scheduledDays: existing.scheduledDays,
+      reps: existing.reps, lapses: existing.lapses, state: existing.state,
+      lastReview: existing.lastReview?.toDate() ?? null,
+      due: existing.due?.toDate() ?? now,
+    } : null;
+    const { nextCard, nextDue } = scheduleCard(srsInput, rating, now);
+    transaction.set(attemptRef, {
+      questionId, selected, isCorrect, answeredAt: Timestamp.fromDate(now),
+    });
+    transaction.set(cardRef, {
+      due: Timestamp.fromDate(nextDue), stability: nextCard.stability,
+      difficulty: nextCard.difficulty, elapsedDays: nextCard.elapsed_days,
+      scheduledDays: nextCard.scheduled_days, reps: nextCard.reps,
+      lapses: nextCard.lapses, state: nextCard.state,
+      lastReview: Timestamp.fromDate(now),
+    });
+    return { isCorrect, nextDue };
   });
-
-  return { isCorrect, nextDue };
 }
 
 export async function getReviewQueue(uid: string) {
@@ -129,8 +119,7 @@ export async function getReviewQueue(uid: string) {
   const q = query(
     collection(db, 'users', uid, 'progress'),
     where('due', '<=', now),
-    orderBy('due'),
-    limit(50)
+    orderBy('due')
   );
   const snap = await getDocs(q);
   const cards = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));

@@ -42,8 +42,9 @@ functions/                   Cloud Functions
 **サーバーを持たない構成です。** Next.js の API Routes は使っておらず、
 ブラウザから直接 Firestore を読み書きします。アクセス制御は `firestore.rules` 側:
 
-- `users/{uid}` — 本人のみ読み書き。一覧は `role == 'admin'` のみ
-- `questions/**` — 認証済みなら読み取り可、書き込みは admin のみ
+- `users/{uid}` — 本人の読み取りのみ。プロフィール書き込みはAdmin SDKのみ。一覧は既存muro UIDのみ
+- `questions/**` — 認証済みなら読み取り可、書き込みは既存muro UIDのみ
+- `attempts` / `progress` / `examHistory` — 本人のみ読み書き
 
 ## 開発
 
@@ -53,15 +54,21 @@ npm run dev        # http://localhost:3000
 npm run build      # out/ に静的書き出し
 ```
 
-テスト・型チェックの CI は無い。動作確認は `npm run dev` で目視。
+`npm test` で復習・終了時保存・再試行・権限判定の回帰テスト。
+`npm run typecheck` で型チェック。`npm run build` も型エラーで停止する。
+GitHub Actionsでpush/PR時にテストとビルドを実行する。
+`npm run test:rules` はFirebase CLIの既存ログインを使い、公式RulesテストAPIに
+合成リクエストを送る。本番データの変更・ルール公開は行わない。
 
-> `next.config.ts` で **`typescript.ignoreBuildErrors: true`** にしている。
-> 型エラーがあってもビルドが通るので、直すときは一度外して確認すること。
+通常クイズ・復習で「今日はここまで」または回答後の「ホーム」を押すと、
+手応えを選んで回答と復習予定を保存してから終了する。
+復習は開始時点の期限到来順の一覧を一巡する（新しく期限になった問題は次回）。
+
 
 ## デプロイ
 
 ```bash
-npm run build && firebase deploy
+npm test && npm run build && firebase deploy --project periop-quiz --only hosting,firestore:rules,functions
 ```
 
 - Firebase プロジェクト: **`periop-quiz`**

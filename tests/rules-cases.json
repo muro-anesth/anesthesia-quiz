@@ -1,0 +1,114 @@
+[
+  [
+    "anonymous questions denied",
+    null,
+    "get",
+    "questions/q1",
+    "DENY"
+  ],
+  [
+    "member questions allowed",
+    "member",
+    "get",
+    "questions/q1",
+    "ALLOW"
+  ],
+  [
+    "member cannot edit questions",
+    "member",
+    "update",
+    "questions/q1",
+    "DENY"
+  ],
+  [
+    "muro edits questions",
+    "kuredXmbTWhCfx4dVtvdUyiZsUq1",
+    "update",
+    "questions/q1",
+    "ALLOW"
+  ],
+  [
+    "member cannot list users",
+    "member",
+    "list",
+    "users/member",
+    "DENY"
+  ],
+  [
+    "muro lists users",
+    "kuredXmbTWhCfx4dVtvdUyiZsUq1",
+    "list",
+    "users/member",
+    "ALLOW"
+  ],
+  [
+    "member reads own profile",
+    "member",
+    "get",
+    "users/member",
+    "ALLOW"
+  ],
+  [
+    "member cannot promote self",
+    "member",
+    "update",
+    "users/member",
+    "DENY"
+  ],
+  [
+    "member cannot create admin profile",
+    "member",
+    "create",
+    "users/member",
+    "DENY"
+  ],
+  [
+    "member cannot delete profile",
+    "member",
+    "delete",
+    "users/member",
+    "DENY"
+  ],
+  [
+    "own attempt readable",
+    "member",
+    "get",
+    "users/member/attempts/a1",
+    "ALLOW"
+  ],
+  [
+    "own attempt writable",
+    "member",
+    "create",
+    "users/member/attempts/a1",
+    "ALLOW"
+  ],
+  [
+    "own progress writable",
+    "member",
+    "update",
+    "users/member/progress/q1",
+    "ALLOW"
+  ],
+  [
+    "own exam history writable",
+    "member",
+    "create",
+    "users/member/examHistory/e1",
+    "ALLOW"
+  ],
+  [
+    "other progress denied",
+    "member",
+    "get",
+    "users/other/progress/q1",
+    "DENY"
+  ],
+  [
+    "unknown subcollection denied",
+    "member",
+    "create",
+    "users/member/permissions/p1",
+    "DENY"
+  ]
+]

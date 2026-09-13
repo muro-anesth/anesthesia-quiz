@@ -112,7 +112,7 @@ function AdminPanel({ onClose }: { onClose: () => void }) {
   const [users, setUsers] = useState<any[]>([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -128,7 +128,7 @@ function AdminPanel({ onClose }: { onClose: () => void }) {
       //    `createUserWithEmailAndPassword` を呼んでいたが、その方式では
       //    サインアップを開けておくしかなく、誰でもアカウントを作れてしまう。
       //    作成は Functions（Admin SDK）へ移し、サインアップ自体を閉じた。
-      await adminCreateUser(username, password, role as 'admin' | 'user');
+      await adminCreateUser(username, password, 'user');
       setMsg("✓ ユーザーを追加しました");
       setUsername(""); setPassword("");
     } catch (err: any) { setMsg("エラー: " + (err?.message || err)); }
@@ -147,11 +147,6 @@ function AdminPanel({ onClose }: { onClose: () => void }) {
             style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:s.text, fontSize:14, outline:"none" }}/>
           <input type="password" required placeholder="パスワード（6文字以上）" value={password} onChange={e => setPassword(e.target.value)}
             style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:s.text, fontSize:14, outline:"none" }}/>
-          <select value={role} onChange={e => setRole(e.target.value)}
-            style={{ background:"#0d1f38", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 12px", color:s.text, fontSize:14, outline:"none" }}>
-            <option value="user">user</option>
-            <option value="admin">admin</option>
-          </select>
           {msg && <div style={{ fontSize:13, color: msg.startsWith("✓") ? "#34d399" : "#f87171" }}>{msg}</div>}
           <button type="submit" disabled={loading}
             style={{ padding:"10px", borderRadius:8, border:"none", background:"linear-gradient(135deg,#0ea5e9,#00b4a0)", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", opacity:loading?0.7:1 }}>
@@ -201,6 +196,12 @@ export default function QuizPage() {
   const [bgmTrack, setBgmTrack] = useState<"1"|"2"|"3">("1");
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const loadingRef = useRef(false);
+  const savingRef = useRef(false);
+  const attemptIdRef = useRef("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [reviewIds, setReviewIds] = useState<string[] | null>(null);
+  const [finishAfterRating, setFinishAfterRating] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -238,14 +239,15 @@ export default function QuizPage() {
     }
   }, [bgmEnabled, bgmTrack]);
 
-  const loadQuestion = useCallback(async () => {
+  const loadQuestion = useCallback(async (excluded = excludeIds) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setPhase("loading");
     try {
-      const res = await getNextQuestion(selectedYears, selectedCats, excludeIds);
+      const res = await getNextQuestion(selectedYears, selectedCats, excluded);
       if (!res.question) { setPhase("empty"); return; }
       setQuestion(res.question);
+      attemptIdRef.current = crypto.randomUUID();
       setCycleComplete(res.cycleComplete ?? false);
       setSelected([]); setIsCorrect(null); setShowExplanation(false);
       setPhase("question");
@@ -253,8 +255,9 @@ export default function QuizPage() {
   }, [selectedYears, selectedCats, excludeIds]);
 
   async function startQuiz() {
+    setReviewIds(null); setSaveError(""); setFinishAfterRating(false);
     setExcludeIds([]); setCycleComplete(false);
-    await loadQuestion();
+    await loadQuestion([]);
   }
 
 async function startExam(baseYear: string) {
@@ -403,9 +406,31 @@ async function handleShowExamHistory() {
 }
 
   async function handleRating(rating: SrsRating) {
-    if (!question || !user || !selected) return;
-    await saveAttempt(user.uid, question.id, selected.join(""), question.answer, rating);
-    await loadQuestion();
+    if (!question || !user || !selected.length || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true); setSaveError("");
+    try {
+      await saveAttempt(user.uid, question.id, selected.join(""), question.answer, rating, attemptIdRef.current);
+      if (finishAfterRating) { setFinishAfterRating(false); setPhase("summary"); return; }
+      if (reviewIds !== null) {
+        const remaining = reviewIds.filter(id => id !== question.id);
+        if (!remaining.length) { setReviewIds([]); setPhase("summary"); return; }
+        const { getDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        const snap = await getDoc(doc(db, 'questions', remaining[0]));
+        if (!snap.exists()) throw new Error("復習問題が見つかりません。ホームから復習一覧を開き直してください。");
+        setReviewIds(remaining);
+        setQuestion({ id: snap.id, ...snap.data() } as Question);
+        attemptIdRef.current = crypto.randomUUID();
+        setSelected([]); setIsCorrect(null); setShowExplanation(false);
+        setPhase("question");
+      } else {
+        await loadQuestion();
+      }
+    } catch {
+      setPhase("answered");
+      setSaveError("保存または次の問題の読み込みに失敗しました。同じボタンでもう一度お試しください。回答は重複して記録されません。");
+    } finally { savingRef.current = false; setSaving(false); }
   }
 
   async function handleShowStats() {
@@ -479,7 +504,7 @@ async function handleShowExamHistory() {
       {phase === "empty" && (
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", gap:16 }}>
           <div style={{ color:s.sub }}>問題が見つかりません</div>
-          <button onClick={() => setPhase("home")} style={{ padding:"10px 24px", borderRadius:10, border:`1px solid ${s.border}`, background:s.card, color:s.text, cursor:"pointer" }}>ホームに戻る</button>
+          <button disabled={saving} onClick={() => setPhase("home")} style={{ padding:"10px 24px", borderRadius:10, border:`1px solid ${s.border}`, background:s.card, color:s.text, cursor:"pointer" }}>ホームに戻る</button>
         </div>
       )}
 
@@ -488,7 +513,7 @@ async function handleShowExamHistory() {
         <div style={{ padding:16 }}>
           {/* 上部ナビ */}
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-            <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+            <button disabled={saving} onClick={() => phase === "answered" ? setFinishAfterRating(true) : setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
             {cycleComplete && <span style={{ fontSize:12, color:"#fbbf24" }}>🎉 全問完了</span>}
           </div>
 
@@ -576,15 +601,18 @@ if (phase === "answered") {
 )}
 
                 <div style={{ textAlign:"center", marginBottom:8 }}>
-                  <button onClick={() => setPhase("summary")}
+                  <button disabled={saving} onClick={() => setFinishAfterRating(true)}
                     style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.15)", borderRadius:10, padding:"10px 24px", color:s.sub, fontSize:13, cursor:"pointer" }}>
                     今日はここまで
                   </button>
                 </div>
 
+                {finishAfterRating && <p role="status" style={{ fontSize:13 }}>回答の手応えを選ぶと、この回答を保存して終了します。</p>}
+                {saveError && <p role="alert" style={{ color:"#f87171", fontSize:13 }}>{saveError}</p>}
+                {saving && <p role="status">保存中...</p>}
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                   {SRS_OPTIONS.map(opt => (
-                    <button key={opt.key} onClick={() => handleRating(opt.key)}
+                    <button key={opt.key} disabled={saving} onClick={() => handleRating(opt.key)}
                       style={{ flex:1, minWidth:70, background:opt.bg, border:`1px solid ${opt.border}`, borderRadius:10, padding:"10px 8px", color:opt.color, fontSize:13, fontWeight:600, cursor:"pointer" }}>
                       <div>{opt.label}</div>
                       <div style={{ fontSize:10, opacity:0.7 }}>{opt.sub}</div>
@@ -613,7 +641,7 @@ if (phase === "answered") {
 {phase === "exam_select" && (
   <div style={{ padding:24 }}>
     <div style={{ display:"flex", alignItems:"center", marginBottom:24 }}>
-      <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+      <button disabled={saving} onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
       <span style={{ fontWeight:600, marginLeft:12 }}>試験モード - 年度選択</span>
     </div>
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
@@ -790,7 +818,7 @@ if (phase === "answered") {
 {phase === "exam_history" && (
   <div style={{ padding:16 }}>
     <div style={{ display:"flex", alignItems:"center", marginBottom:16 }}>
-      <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+      <button disabled={saving} onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
       <span style={{ fontWeight:600, marginLeft:12 }}>試験履歴</span>
     </div>
 
@@ -831,7 +859,7 @@ if (phase === "answered") {
               </svg>
               <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:8 }}>
                 {[...results].reverse().map((r: any, i: number) => (
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:s.sub }}>
+                  <div key={r.id} style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:s.sub }}>
   <span>{r.date?.toDate?.()?.toLocaleDateString('ja-JP') ?? "-"}</span>
   <span style={{ color: r.score >= 80 ? "#34d399" : r.score >= 60 ? "#fbbf24" : "#f87171", fontWeight:600 }}>
     {r.score}%　{r.correctAnswers}/{r.totalQuestions}問
@@ -852,7 +880,7 @@ if (phase === "answered") {
       {phase === "review_list" && (
         <div style={{ padding:16 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+            <button disabled={saving} onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
             <span style={{ fontWeight:600 }}>復習モード</span>
             <span style={{ fontSize:13, color:s.sub }}>{reviewQueue?.total ?? 0}件</span>
           </div>
@@ -860,12 +888,15 @@ if (phase === "answered") {
   <button onClick={async () => {
     if (!reviewQueue?.cards?.length) return;
     setPhase("loading");
+    setReviewIds(reviewQueue.cards.map((c: { questionId: string }) => c.questionId));
+    setSaveError(""); setFinishAfterRating(false); setCycleComplete(false);
     const reviewQ = reviewQueue.cards[0];
     const { getDoc, doc } = await import('firebase/firestore');
     const { db } = await import('@/lib/firebase');
     const qSnap = await getDoc(doc(db, 'questions', reviewQ.questionId));
     if (qSnap.exists()) {
       setQuestion({ id: qSnap.id, ...qSnap.data() } as any);
+      attemptIdRef.current = crypto.randomUUID();
       setSelected([]); setIsCorrect(null); setShowExplanation(false);
       setPhase("question");
     }
@@ -898,7 +929,7 @@ if (phase === "answered") {
       {phase === "stats" && (
         <div style={{ padding:16 }}>
           <div style={{ display:"flex", alignItems:"center", marginBottom:16 }}>
-            <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+            <button disabled={saving} onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
             <span style={{ fontWeight:600, marginLeft:12 }}>成績確認</span>
           </div>
           {!stats ? <div style={{ textAlign:"center", padding:40, color:s.sub }}>読み込み中...</div> : (
@@ -934,7 +965,7 @@ if (phase === "answered") {
       {phase === "settings" && (
         <div style={{ padding:16 }}>
           <div style={{ display:"flex", alignItems:"center", marginBottom:16 }}>
-            <button onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
+            <button disabled={saving} onClick={() => setPhase("home")} style={{ background:"rgba(255,255,255,0.05)", border:`1px solid ${s.border}`, borderRadius:10, padding:"8px 16px", color:s.text, fontSize:14, cursor:"pointer" }}>← ホーム</button>
             <span style={{ fontWeight:600, marginLeft:12 }}>設定</span>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
