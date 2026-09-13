@@ -13,6 +13,8 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
+// Firebase's browser default persists the session in IndexedDB/localStorage.
+// Do not switch to session/in-memory persistence or store passwords ourselves.
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export default app;
