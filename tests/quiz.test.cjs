@@ -874,7 +874,7 @@ test('historical exam preserves skipped numbers and scores only the available qu
  const s=await setup({years:['2015a','2015b'],examQuestions:{'2015a':[old('a',35),old('a',42)],'2015b':[old('b',60)]}});
  await s.click('試験モード');
  assert.match(s.text(),/原本の欠番・確認待ちの問題を除いて/);
- assert.match(s.text(),/A問題 48問・B問題 59問/);
+ assert.match(s.text(),/A問題 54問・B問題 60問/);
  await s.click('2015年度');
  assert.match(s.text(),/Q35/);
  await s.click('選択肢A');await s.click('次の問題');
