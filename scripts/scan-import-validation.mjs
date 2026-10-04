@@ -9,12 +9,13 @@ const requiredChecks = ['transcription','answer','explanation','images','handwri
 export function validateScanImport(bundle) {
   assert.equal(bundle.schemaVersion, 1, 'Unsupported scan bundle');
   assert.ok(Array.isArray(bundle.questions) && bundle.questions.length > 0, 'No questions');
-  assert.ok(bundle.questions.length <= 714, 'Unexpected question count');
+  assert.ok(bundle.questions.length <= 713, 'Unexpected question count');
   const ids = new Set();
   return bundle.questions.map(q => {
     assert.ok(allowedYears.has(q.year), `Out-of-scope year: ${q.year}`);
     assert.ok(Number.isInteger(q.qnum) && q.qnum >= 1 && q.qnum <= 60, 'Invalid question number');
     assert.ok(!(q.year === '2015a' && q.qnum >= 36 && q.qnum <= 41), 'Missing source page cannot be imported');
+    assert.ok(!(q.year === '2014a' && q.qnum === 5), 'Question withdrawn in the original source cannot be imported');
     const id = `${q.year}-${q.qnum}`;
     assert.ok(!ids.has(id), `Duplicate: ${id}`);
     ids.add(id);
