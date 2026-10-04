@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const categories = JSON.parse(readFileSync(new URL('../src/lib/questionCategories.json', import.meta.url)));
 
-const allowedYears = new Set(['2015a','2015b','2016a','2016b','2017a','2017b','2018a','2018b','2022a','2022b']);
+const allowedYears = new Set(['2014a','2014b','2015a','2015b','2016a','2016b','2017a','2017b','2018a','2018b','2022a','2022b']);
 const requiredChecks = ['transcription','answer','explanation','images','handwriting','category'];
 
 // Fail closed: staging OCR must never become a live question by accident.
 export function validateScanImport(bundle) {
   assert.equal(bundle.schemaVersion, 1, 'Unsupported scan bundle');
   assert.ok(Array.isArray(bundle.questions) && bundle.questions.length > 0, 'No questions');
-  assert.ok(bundle.questions.length <= 594, 'Unexpected question count');
+  assert.ok(bundle.questions.length <= 714, 'Unexpected question count');
   const ids = new Set();
   return bundle.questions.map(q => {
     assert.ok(allowedYears.has(q.year), `Out-of-scope year: ${q.year}`);

@@ -4,6 +4,8 @@ const sample=()=>({schemaVersion:1,questions:[{year:'2018a',qnum:1,stem:'試験�
 test('scan imports reject OCR drafts, pending review and incomplete data',async()=>{
  const {validateScanImport}=await import('../scripts/scan-import-validation.mjs');
  assert.equal(validateScanImport(sample())[0].id,'2018a-1');
+ const addedYear=sample();addedYear.questions[0].year='2014b';
+ assert.equal(validateScanImport(addedYear)[0].id,'2014b-1');
  for(const mutate of [b=>b.questions[0].review.status='pending',b=>b.questions[0].review.answer=false,b=>b.questions[0].review.openIssues=['unclear'],b=>b.questions[0].answer='f',b=>b.questions[0].answer='aa',b=>delete b.questions[0].choices.e,b=>b.questions.push(b.questions[0]),b=>b.questions[0].year='2025a',b=>{b.questions[0].year='2015a';b.questions[0].qnum=36},b=>b.questions[0].main_image='../secret.png',b=>b.questions[0].review.sources=[]]){
   const b=sample();mutate(b);assert.throws(()=>validateScanImport(b));
  }

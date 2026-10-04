@@ -2,7 +2,7 @@
 
 ## 過去問スキャン追加（2026-10-04、準備中）
 
-2015・2016・2017・2018・2022年度の追加作業中。本番未登録。原画像・未検証OCRは公開リポジトリに置かない。進捗とローカル資料の場所はWORKLOG参照。
+2014・2015・2016・2017・2018・2022年度の追加作業中。2015年度の確認済み98問は本番登録・読戻し検証済み（A46問・B52問）。2015年度の正答等の疑義16問と原本欠番6問は除外。他年度はまだ点検中。原画像・未検証OCRは公開リポジトリに置かない。進捗とローカル資料の場所はWORKLOG参照。
 `scripts/scan-import-validation.mjs` は未承認・疑義ありの問題を拒否し、新規問題だけをcreateする。1回400問以下、既存IDがあれば全体中止。既存の `import-to-firestore.mjs` はmergeで上書きするため今回使用禁止。
 
 取り込みは `node scripts/import-reviewed-scans.mjs /absolute/reviewed-bundle.json` でdry-run。全検証・画像確認後にのみ `--apply` を付ける。`node scripts/verify-question-preservation.mjs /absolute/questions-before.json` で既存問題の不変を確認する。これらは利用者・回答・成績コレクションに触れない。
