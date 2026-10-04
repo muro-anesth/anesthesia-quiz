@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const categories = JSON.parse(readFileSync(new URL('../src/lib/questionCategories.json', import.meta.url)));
 
 const allowedYears = new Set(['2015a','2015b','2016a','2016b','2017a','2017b','2018a','2018b','2022a','2022b']);
 const requiredChecks = ['transcription','answer','explanation','images','handwriting','category'];
@@ -20,10 +22,10 @@ export function validateScanImport(bundle) {
     for (const key of requiredChecks) assert.equal(q.review[key], true, `${id}: ${key} not checked`);
     assert.deepEqual(q.review.openIssues, [], `${id}: unresolved issues`);
     assert.ok(typeof q.stem === 'string' && q.stem.trim(), `${id}: empty stem`);
-    assert.ok(typeof q.category === 'string' && q.category.trim() && q.category !== '未分類', `${id}: category required`);
+    assert.ok(categories.includes(q.category) && q.category !== '未分類', `${id}: category required`);
     assert.deepEqual(Object.keys(q.choices).sort(), ['a','b','c','d','e'], `${id}: choices incomplete`);
     assert.ok(Object.values(q.choices).every(x=>typeof x === 'string' && x.trim()), `${id}: empty choice`);
-    assert.ok(/^[a-e]{1,5}$/.test(q.answer) && new Set(q.answer).size===q.answer.length, `${id}: answer invalid`);
+    assert.ok(/^[a-e]{1,2}$/.test(q.answer) && new Set(q.answer).size===q.answer.length, `${id}: answer invalid or unsupported selection count`);
     assert.ok(typeof q.explanation === 'string' && q.explanation.trim().length >= 30, `${id}: explanation absent`);
     assert.ok(Array.isArray(q.review.sources) && q.review.sources.length>0 && q.review.sources.every(x=>typeof x==='string' && /^https:\/\//.test(x)), `${id}: sources absent`);
     assert.ok(typeof q.review.sourceFile==='string' && q.review.sourceFile, `${id}: original source absent`);

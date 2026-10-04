@@ -68,6 +68,19 @@ const CAT_COLORS: Record<
     color: "#818cf8",
   },
 };
+// Additional perioperative topics retain the existing palette and do not
+// change the colors of historical categories.
+for (const [category, reference] of Object.entries({
+  "医療機器・設備": "モニタリング・バイタル",
+  "感染対策": "薬理・局所麻酔",
+  "術前評価・合併症": "術後管理",
+  "解剖・生理": "区域麻酔",
+  "薬理・その他": "薬理・オピオイド",
+  "医療安全・チーム医療": "気道管理",
+  "体位・皮膚障害": "産科麻酔",
+  "輸液・電解質": "モニタリング・バイタル",
+  "呼吸管理": "気道管理",
+})) CAT_COLORS[category] = CAT_COLORS[reference];
 export const catStyle = (cat: string) =>
   CAT_COLORS[cat] ?? {
     bg: "rgba(100,100,100,0.1)",

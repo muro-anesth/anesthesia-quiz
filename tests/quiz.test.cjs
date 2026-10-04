@@ -9,6 +9,7 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 function load(file, mocks, cache = new Map()) {
   const path = require("node:path");
   file = path.resolve(file);
+  if(file.endsWith('.json')) return {default:JSON.parse(fs.readFileSync(file,'utf8'))};
   if (cache.has(file)) return cache.get(file);
   const output = ts.transpileModule(fs.readFileSync(file, "utf8"), {
     compilerOptions: {
@@ -81,7 +82,7 @@ async function setup(options = {}) {
       username: "test",
       role: options.admin ? "admin" : "user",
     }),
-    getYears: async () => ["2025a"],
+    getYears: async () => options.years ?? ["2025a"],
     getCategories: async () => ["気道管理"],
     getReviewQueue: async () => ({
       total: 2,
@@ -92,7 +93,7 @@ async function setup(options = {}) {
       return {
         question: options.empty
           ? null
-          : { ...q("q9"), answer: options.multi ? "ab" : "a" },
+          : options.question ?? { ...q("q9"), answer: options.multi ? "ab" : "a" },
       };
     },
     saveAttempt: async (...args) => {
@@ -108,7 +109,7 @@ async function setup(options = {}) {
       categories: [{ name: "気道管理", correct: 1, total: 2, rate: 50 }],
     }),
     getUsers: async () => [{ uid: "test", username: "test", role: "user" }],
-    getQuestionsForYear: async (year) => [
+    getQuestionsForYear: async (year) => options.examQuestions?.[year] ?? [
       { ...q(year.endsWith("a") ? "q1" : "q2"), year },
     ],
     saveExamResult: async (uid, result) => calls.push(["exam", result]),
@@ -164,6 +165,11 @@ async function setup(options = {}) {
     calls,
     renderer,
     click,
+    clickChoice: async (key) => {
+      const button=renderer.root.findAllByType('button').find(b=>text(b).startsWith(key.toUpperCase()+'.'));
+      assert.ok(button,`Choice ${key}`);
+      await act(async()=>button.props.onClick());
+    },
     fail: (v) => (fail = v),
     text: () => text(renderer.toJSON()),
     close: async () => act(() => renderer.unmount()),
@@ -492,4 +498,65 @@ test("ending can be cancelled; opening and closing explanation never saves an an
   assert.match(s.text(), /問題 q2/);
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   await s.close();
+});
+
+test("scanned question preserves line breaks, figure, combination answer and explanation without saving on reveal", async () => {
+  const question={...q('scan1'),id:'2015a-44',year:'2015a',qnum:44,
+    stem:'テスト専用設問\n（1）第一の記述\n（2）第二の記述',
+    choices:{a:'（1）、（2）',b:'（1）、（3）',c:'（2）、（3）',d:'（2）、（3）、（4）',e:'（3）、（4）、（5）'},
+    answer:'d',category:'医療機器・設備',is_image_question:true,main_image:'q44-test.png',
+    explanation:'独自解説のテスト\n出題当時と現在の違い'};
+  const s=await setup({question,years:['2015a','2015b']});
+  await s.click('クイズ');
+  assert.match(s.text(),/2015a Q44/);
+  assert.ok(s.renderer.root.findAllByType('span').some(n=>n.props.style?.whiteSpace==='pre-wrap' && n.children.includes(question.stem)));
+  assert.equal(s.renderer.root.findByType('img').props.src,'/quiz-images/2015a/q44-test.png');
+  await s.click('（2）、（3）、（4）');
+  assert.match(s.text(),/✓ 正解/);
+  await s.click('解説を見る');
+  assert.match(s.text(),/出題当時と現在の違い/);
+  assert.equal(s.calls.filter(Array.isArray).length,0);
+  await s.click('×');
+  await s.click('思い出せた');
+  const saved=s.calls.filter(Array.isArray)[0];
+  assert.equal(saved[1],'2015a-44');assert.equal(saved[2],'d');
+  await s.close();
+});
+
+test('historical exam preserves skipped numbers and scores only the available questions',async()=>{
+ const old=(part,n)=>({...q('q'+n),id:`2015${part}-${n}`,year:`2015${part}`,qnum:n});
+ const s=await setup({years:['2015a','2015b'],examQuestions:{'2015a':[old('a',35),old('a',42)],'2015b':[old('b',60)]}});
+ await s.click('試験モード');await s.click('2015年度');
+ assert.match(s.text(),/Q35/);
+ await s.click('選択肢A');await s.click('次の問題');
+ assert.match(s.text(),/Q42/);
+ await s.click('選択肢B');await s.click('結果を見る');await s.click('B問題へ進む');
+ assert.match(s.text(),/Q60/);
+ await s.click('選択肢A');await s.click('結果を見る');
+ const result=s.calls.find(c=>Array.isArray(c)&&c[0]==='exam')[1];
+ assert.equal(result.totalQuestions,3);assert.equal(result.correctAnswers,2);assert.equal(result.score,67);
+ assert.deepEqual(Array.from(result.answers,a=>a.questionId),['2015a-35','2015a-42','2015b-60']);
+ await s.close();
+});
+
+test('every approved scanned question completes display, correct response, explanation and mock save', {skip:!process.env.SCAN_REVIEW_BUNDLE},async()=>{
+ const bundle=JSON.parse(fs.readFileSync(process.env.SCAN_REVIEW_BUNDLE));
+ const {validateScanImport}=await import('../scripts/scan-import-validation.mjs');
+ const questions=validateScanImport(bundle);
+ for(const row of questions){
+  const s=await setup({question:{id:row.id,...row.data},years:[row.data.year]});
+  try{
+   await s.click('クイズ');
+   assert.ok(s.text().includes(row.data.stem),row.id+' stem');
+   for(const choice of row.data.answer)await s.clickChoice(choice);
+   assert.match(s.text(),/✓ 正解/,row.id);
+   await s.click('解説を見る');
+   assert.ok(s.text().includes(row.data.explanation),row.id+' explanation');
+   assert.equal(s.calls.filter(Array.isArray).length,0);
+   await s.click('×');await s.click('思い出せた');
+   const saved=s.calls.filter(Array.isArray);
+   assert.equal(saved.length,1,row.id+' save count');
+   assert.equal(saved[0][1],row.id);assert.equal(saved[0][2],row.data.answer);
+  } finally {await s.close();}
+ }
 });

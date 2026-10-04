@@ -2,6 +2,7 @@ import type { QuizController } from "../useQuizController";
 import { s, catStyle } from "../theme";
 import { CHOICE_KEYS } from "../types";
 import { AnswerPanel } from "../components/AnswerPanel";
+import { QuestionText } from "../components/QuestionText";
 import { questionViewport, questionScroll } from "../components/answerLayout";
 
 type Props = Pick<
@@ -122,7 +123,7 @@ export function QuestionScreen({
               </div>
 
               <p style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>
-                {question.stem}
+                <QuestionText text={question.stem} />
               </p>
               {question.subitems && (
                 <div
@@ -213,7 +214,7 @@ export function QuestionScreen({
                       <span style={{ fontWeight: 700, minWidth: 18 }}>
                         {key.toUpperCase()}.
                       </span>
-                      <span>{choiceText}</span>
+                      <span><QuestionText text={choiceText} /></span>
                     </button>
                   );
                 })}

@@ -8,6 +8,8 @@ import {
 import app, { auth, db } from './firebase';
 import { scheduleCard, type SrsRating } from './srs';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import questionCategories from './questionCategories.json';
+import questionYears from './questionYears.json';
 
 const DOMAIN = 'periop-quiz.app';
 
@@ -57,15 +59,11 @@ export async function getNextQuestion(
 }
 
 export async function getYears(): Promise<string[]> {
-  return ['2023a', '2023b', '2024a', '2024b', '2025a', '2025b'];
+  return [...questionYears];
 }
 
 export async function getCategories(): Promise<string[]> {
-  return [
-    '薬理・局所麻酔', '薬理・アナフィラキシー', '薬理・筋弛緩', '薬理・オピオイド',
-    '心肺蘇生', 'モニタリング・ECG', 'モニタリング・バイタル', '気道管理',
-    '区域麻酔', '産科麻酔', '小児麻酔', '輸血・出血管理', '術後管理', '未分類',
-  ];
+  return [...questionCategories];
 }
 
 // ─── SRS・成績 ──────────────────────────────────────

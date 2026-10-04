@@ -21,3 +21,12 @@ test('scan import creates only new question documents, never touches user record
  assert.equal(writes.length,1);
  assert.ok(!JSON.stringify(writes).includes('review'));
 });
+
+test('scan categories, diagrams, selection limits and batch limits fail closed',async()=>{
+ const {validateScanImport,createScanQuestions}=await import('../scripts/scan-import-validation.mjs');
+ for(const mutate of [q=>q.category='未分類',q=>q.category='架空の分類',q=>q.review.category=false,q=>q.is_image_question=true,q=>q.answer='abc',q=>q.explanation='',q=>q.review.transcription=false]){
+  const b=sample();mutate(b.questions[0]);assert.throws(()=>validateScanImport(b));
+ }
+ await assert.rejects(()=>createScanQuestions({},[]));
+ await assert.rejects(()=>createScanQuestions({},Array(401).fill({})));
+});

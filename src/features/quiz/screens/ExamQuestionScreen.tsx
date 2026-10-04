@@ -1,6 +1,7 @@
 import type { QuizController } from "../useQuizController";
 import { s, catStyle } from "../theme";
 import { CHOICE_KEYS } from "../types";
+import { QuestionText } from "../components/QuestionText";
 import {
   questionViewport,
   questionScroll,
@@ -181,7 +182,7 @@ export function ExamQuestionScreen({
               </div>
 
               <p style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>
-                {question.stem}
+                <QuestionText text={question.stem} />
               </p>
 
               {question.subitems && (
@@ -275,7 +276,7 @@ export function ExamQuestionScreen({
                       <span style={{ fontWeight: 700, minWidth: 18 }}>
                         {key.toUpperCase()}.
                       </span>
-                      <span>{choiceText}</span>
+                      <span><QuestionText text={choiceText} /></span>
                     </button>
                   );
                 })}
