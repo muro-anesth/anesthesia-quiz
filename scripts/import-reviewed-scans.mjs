@@ -5,6 +5,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {initializeApp,cert} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
 import {validateScanImport,createScanQuestions} from './scan-import-validation.mjs';
+import {verifyPublishedScanImages} from './verify-published-scan-images.mjs';
 
 const args=process.argv.slice(2);
 const filename=args.find(a=>!a.startsWith('--'));
@@ -30,9 +31,12 @@ if(existing.length)throw Error(`Aborted: existing IDs ${existing.join(', ')}`);
 const digest=crypto.createHash('sha256').update(raw).digest('hex');
 console.log(JSON.stringify({project:'periop-quiz',mode:args.includes('--apply')?'apply':'dry-run',count:rows.length,sha256:digest,years:[...new Set(rows.map(q=>q.data.year))]},null,2));
 if(args.includes('--apply')){
+ // Hosting must contain the exact reviewed assets before questions go live.
+ // A missing/mismatched image aborts before the transaction or receipt write.
+ const publishedImageCount=await verifyPublishedScanImages(rows);
  const dir=path.join(path.dirname(filename),'receipts');mkdirSync(dir,{recursive:true});
  const receipt=path.join(dir,`${Date.now()}-${digest.slice(0,12)}.json`);
- const record={project:'periop-quiz',bundle:filename,sha256:digest,ids:rows.map(q=>q.id),startedAt:new Date().toISOString(),status:'prepared'};
+ const record={project:'periop-quiz',bundle:filename,sha256:digest,ids:rows.map(q=>q.id),publishedImageCount,startedAt:new Date().toISOString(),status:'prepared'};
  // Persist intent before any remote write. A retry aborts on existing IDs;
  // it never changes/removes them even if the previous receipt write failed.
  writeFileSync(receipt,JSON.stringify(record,null,2),{flag:'wx',mode:0o600});

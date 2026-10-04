@@ -28,9 +28,24 @@ test('scan categories, diagrams, selection limits and batch limits fail closed',
  const {validateScanImport,createScanQuestions}=await import('../scripts/scan-import-validation.mjs');
  const ce=sample();ce.questions[0].category='CE関連';
  assert.equal(validateScanImport(ce)[0].data.category,'CE関連');
- for(const mutate of [q=>q.category='未分類',q=>q.category='架空の分類',q=>q.review.category=false,q=>q.is_image_question=true,q=>q.answer='abc',q=>q.explanation='',q=>q.review.transcription=false]){
+ for(const mutate of [q=>q.category='未分類',q=>q.category='架空の分類',q=>q.review.category=false,q=>q.is_image_question=true,q=>q.answer='abc',q=>q.explanation='',q=>q.review.transcription=false,q=>{q.is_image_question=true;q.option_images=['choice-a.png']},q=>q.main_image='hidden.png']){
   const b=sample();mutate(b.questions[0]);assert.throws(()=>validateScanImport(b));
  }
  await assert.rejects(()=>createScanQuestions({},[]));
  await assert.rejects(()=>createScanQuestions({},Array(401).fill({})));
+});
+
+test('scan import requires the exact approved image to be published before apply',async()=>{
+ const {verifyPublishedScanImages}=await import('../scripts/verify-published-scan-images.mjs');
+ const rows=[{id:'2015a-4',data:{year:'2015a',main_image:'q4.png',option_images:[]}}];
+ const bytes=Buffer.from('image bytes');
+ const readImage=()=>bytes;
+ await assert.rejects(()=>verifyPublishedScanImages(rows,{readImage,fetchImage:async()=>({ok:false,status:404})}),/not published/);
+ await assert.rejects(()=>verifyPublishedScanImages(rows,{readImage,fetchImage:async()=>({ok:true,arrayBuffer:async()=>Buffer.from('different image')})}),/differs/);
+ let calls=0;
+ assert.equal(await verifyPublishedScanImages([...rows,...rows],{readImage,fetchImage:async url=>{
+  assert.equal(url,'https://periop-quiz.web.app/quiz-images/2015a/q4.png');calls++;
+  return {ok:true,arrayBuffer:async()=>bytes};
+ }}),1);
+ assert.equal(calls,1);
 });

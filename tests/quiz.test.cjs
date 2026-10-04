@@ -551,6 +551,9 @@ test('every approved scanned question completes display, correct response, expla
   try{
    await s.click('クイズ');
    assert.ok(s.text().includes(row.data.stem),row.id+' stem');
+   if(row.data.is_image_question){
+    assert.equal(s.renderer.root.findByType('img').props.src,`/quiz-images/${row.data.year}/${row.data.main_image}`,row.id+' figure');
+   }
    for(const choice of row.data.answer)await s.clickChoice(choice);
    assert.match(s.text(),/✓ 正解/,row.id);
    await s.click('解説を見る');

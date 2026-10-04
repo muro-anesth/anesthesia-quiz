@@ -31,8 +31,9 @@ export function validateScanImport(bundle) {
     assert.ok(typeof q.review.sourceFile==='string' && q.review.sourceFile, `${id}: original source absent`);
     assert.equal(typeof q.is_image_question,'boolean',`${id}: image flag absent`);
     const images=[q.main_image,...(q.option_images??[])].filter(Boolean);
+    assert.ok(Array.isArray(q.option_images??[]) && (q.option_images??[]).length===0, `${id}: merge option figures into the supported main image`);
     assert.ok(images.every(x=>typeof x==='string' && /^[a-zA-Z0-9_-]+\.(png|jpg|webp)$/.test(x)), `${id}: unsafe image path`);
-    assert.ok(!q.is_image_question || images.length>0, `${id}: missing image`);
+    assert.ok(q.is_image_question ? Boolean(q.main_image) : images.length===0, `${id}: main image and image flag must agree`);
     return {id, data:{year:q.year,qnum:q.qnum,stem:q.stem,choices:q.choices,answer:q.answer,
       explanation:q.explanation,is_image_question:q.is_image_question,main_image:q.main_image??null,
       option_images:q.option_images??[],category:q.category??'未分類'}};
