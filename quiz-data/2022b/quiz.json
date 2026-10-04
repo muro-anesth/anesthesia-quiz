@@ -634,6 +634,24 @@
       "notes": []
     },
     {
+      "qnum": 38,
+      "stem": "ボンベ容積3.4 Lの酸素ボンベの圧力表示が5 MPaであった。残量は何リットルか。",
+      "choices": {
+        "a": "100 L",
+        "b": "170 L",
+        "c": "340 L",
+        "d": "400 L",
+        "e": "500 L"
+      },
+      "answer": "b",
+      "explanation": "正答はb（約170 L）。圧力計がMPa表示の場合、残量の概算は内容積L×指示圧MPa×10で求める。したがって3.4×5×10＝170 L。これは常圧換算の概算残量であり、安全に使用できる時間は流量、交換基準、余裕を別途考慮する。原本の容積単位VはLへ補正した。年代による計算方法の変更ではない。",
+      "is_image_question": false,
+      "main_image": null,
+      "option_images": [],
+      "category": "CE関連",
+      "notes": []
+    },
+    {
       "qnum": 39,
       "stem": "UDI （Unique Device Identification：機器固有識別）について誤っているのはどれか。",
       "choices": {

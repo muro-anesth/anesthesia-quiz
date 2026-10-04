@@ -3,6 +3,8 @@ import { getDailyQuizQuestion, loadDailyQuizData } from '@/lib/dailyQuizData';
 import { dailyAttemptId, dailyDate, dailyStorageKey, dailySeenKey, parseDailySession, planDailyQuiz, reconcileDailySession, type DailySession } from './dailyQuizPlanner';
 import type { Phase, Question } from './types';
 
+export class StaleDailySessionError extends Error {}
+
 export function useDailyQuiz(uid: string | undefined, phase: Phase) {
   const [session, setSession] = useState<DailySession | null>(null);
   const [active, setActive] = useState(false);
@@ -10,6 +12,14 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
   const current = useRef<DailySession | null>(null);
   const owner = useRef(uid);
   owner.current = uid;
+  const generation = useRef(0);
+  const previousOwner = useRef(uid);
+  if (previousOwner.current !== uid) {
+    previousOwner.current = uid;
+    generation.current++;
+  }
+  const renderedGeneration = generation.current;
+  const ownsSession = () => owner.current === uid && generation.current === renderedGeneration;
   const cache = useRef<{ key: string; data: Awaited<ReturnType<typeof loadDailyQuizData>> } | null>(null);
 
   function read(date: string): DailySession | null {
@@ -26,11 +36,11 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
     return [...new Set(ids)];
   }
   function persist(next: DailySession, replaceToken?: string): DailySession {
-    if (!uid || owner.current !== uid) throw new Error('ログイン状態が変わりました。');
+    if (!uid || !ownsSession()) throw new Error('ログイン状態が変わりました。');
     // Preserve another tab's completed items without writing any server data.
     let stored = read(next.date);
     if (stored && stored.token !== next.token) {
-      if (stored.token !== replaceToken || stored.done.length !== stored.ids.length) throw new Error('別の画面で今日の20問が開始されました。ホームから開き直してください。');
+      if (stored.token !== replaceToken || stored.done.length !== stored.ids.length) throw new StaleDailySessionError('別の画面で今日の20問が開始されました。ホームから開き直してください。');
       stored = null; // A completed set is replaced, never merged into the next set.
     }
     const completed = new Map([...next.done, ...(stored?.done ?? [])].map(d => [d.id, d]));
@@ -47,6 +57,7 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
     current.current = null;
     setSession(null);
     setActive(false);
+    setError('');
   }, [uid]);
 
   useEffect(() => {
@@ -88,7 +99,7 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
       const id = next.ids.find(id => !next!.done.some(d => d.id === id));
       if (!id) return null;
       const question = await getDailyQuizQuestion(id);
-      if (owner.current !== uid) throw new Error('ログイン状態が変わりました。');
+      if (!ownsSession()) throw new Error('ログイン状態が変わりました。');
       if (question) return question;
       // Deleted/unpublished items do not count as answered or as part of the total.
       next = persist({ ...next, ids: next.ids.filter(qid => qid !== id) });
@@ -105,7 +116,7 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
     const key = `${baseKey}:${saved?.token ?? 'new'}`;
     if (requestNewSet || !cache.current || cache.current.key !== key) {
       const data = await loadDailyQuizData(uid);
-      if (owner.current !== uid) throw new Error('ログイン状態が変わりました。');
+      if (!ownsSession()) throw new Error('ログイン状態が変わりました。');
       cache.current = { key, data };
     }
     // Read again after the network await to avoid replacing a concurrent start.
@@ -136,8 +147,16 @@ export function useDailyQuiz(uid: string | undefined, phase: Phase) {
     persist({ ...value, done: value.done.some(d => d.id === id) ? value.done : [...value.done, { id, correct }] });
   }
 
+  function validateCurrentSet() {
+    if (!uid || !ownsSession()) throw new Error('ログイン状態が変わりました。');
+    const value = current.current;
+    if (!value || read(value.date)?.token !== value.token) {
+      throw new StaleDailySessionError('別の画面でセットが変更されました。ホームから開き直してください。');
+    }
+  }
+
   return {
-    active, session, error, setError, begin, afterSave, nextQuestion,
+    active, session, error, setError, begin, afterSave, nextQuestion, validateCurrentSet,
     stop: () => setActive(false),
     attemptId: (id: string) => dailyAttemptId(current.current!, id),
   };

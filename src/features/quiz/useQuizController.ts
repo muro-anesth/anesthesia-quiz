@@ -1,6 +1,6 @@
 import { useQuizAudio } from "./useQuizAudio";
 import { useExamSession } from "./useExamSession";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { createElement, useState, useEffect, useCallback, useRef } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
@@ -16,7 +16,7 @@ import { type SrsRating } from "@/lib/srs";
 
 import type { Question, Phase, ChoiceKey } from "./types";
 import { playSound } from "./sound";
-import { useDailyQuiz } from "./useDailyQuiz";
+import { StaleDailySessionError, useDailyQuiz } from "./useDailyQuiz";
 
 export function useQuizController() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,6 +42,17 @@ export function useQuizController() {
   const attemptIdRef = useRef("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [staleDaily, setStaleDaily] = useState(false);
+  // Changed synchronously by the auth observer, before React commits a render.
+  // An epoch also invalidates A -> B -> A promises and captured event handlers.
+  const identity = useRef({ uid: undefined as string | undefined, epoch: 0 });
+  const epoch = identity.current.epoch;
+  const ownsUI = () => identity.current.epoch === epoch &&
+    identity.current.uid === user?.uid && auth.currentUser?.uid === user?.uid;
+  const guardSetter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>): React.Dispatch<React.SetStateAction<T>> =>
+    value => { if (ownsUI()) setter(value); };
+  const ownedAction = <A extends unknown[], R,>(action: (...args: A) => R) =>
+    (...args: A) => { if (ownsUI()) return action(...args); };
   const [reviewIds, setReviewIds] = useState<string[] | null>(null);
   const [finishAfterRating, setFinishAfterRating] = useState(false);
   const daily = useDailyQuiz(user?.uid, phase);
@@ -64,18 +75,20 @@ export function useQuizController() {
   }
 
   async function startDailyQuiz() {
-    if (!user || loadingRef.current || savingRef.current) return;
+    if (!user || !ownsUI() || loadingRef.current || savingRef.current) return;
     loadingRef.current = true;
     setReviewIds(null);
     setSaveError("");
+    setStaleDaily(false);
     setFinishAfterRating(false);
     setCycleComplete(false);
     setPhase("loading");
-    try { showDailyQuestion(await daily.begin()); }
+    try { const next = await daily.begin(); if (ownsUI()) showDailyQuestion(next); }
     catch {
+      if (!ownsUI()) return;
       daily.setError("今日の20問を開始できませんでした。通信とブラウザの保存設定を確認し、もう一度お試しください。");
       setPhase("home");
-    } finally { loadingRef.current = false; }
+    } finally { if (ownsUI()) loadingRef.current = false; }
   }
 
   const { bgmEnabled, setBgmEnabled, bgmTrack, setBgmTrack } = useQuizAudio();
@@ -98,11 +111,11 @@ export function useQuizController() {
   } = useExamSession({
     user,
     selected,
-    setSelected,
-    setQuestion,
-    setIsCorrect,
-    setShowExplanation,
-    setPhase,
+    setSelected: guardSetter(setSelected),
+    setQuestion: guardSetter(setQuestion),
+    setIsCorrect: guardSetter(setIsCorrect),
+    setShowExplanation: guardSetter(setShowExplanation),
+    setPhase: guardSetter(setPhase),
     loadingRef,
   });
 
@@ -111,14 +124,41 @@ export function useQuizController() {
   useEffect(() => {
     if (!mounted) return;
     const unsub = onAuthStateChanged(auth, async (u) => {
+      if (identity.current.uid !== u?.uid) {
+        identity.current = { uid: u?.uid, epoch: identity.current.epoch + 1 };
+        attemptIdRef.current = "";
+        dailyQuestionIdRef.current = null;
+        dailySelectedRef.current = [];
+        answerLockRef.current = true;
+        loadingRef.current = false;
+        savingRef.current = false;
+        setSaving(false);
+        setQuestion(null);
+        setSelected([]);
+        setIsCorrect(null);
+        setShowExplanation(false);
+        setShowExamWarning(false);
+        setCycleComplete(false);
+        setFinishAfterRating(false);
+        setReviewIds(null);
+        setReviewQueue(null);
+        setExcludeIds([]);
+        setStats(null);
+        setUserProfile(null);
+        setShowAdmin(false);
+        setSaveError("");
+        setStaleDaily(false);
+        setPhase("home");
+      }
       setAuthLoading(false);
+      setUser(u);
       if (!u) {
         window.location.replace("/login");
         return;
       }
-      setUser(u);
+      const requestEpoch = identity.current.epoch;
       const profile = await getUserProfile(u.uid);
-      setUserProfile(profile);
+      if (identity.current.epoch === requestEpoch && auth.currentUser?.uid === u.uid) setUserProfile(profile);
     });
     return unsub;
   }, [mounted]);
@@ -131,7 +171,7 @@ export function useQuizController() {
 
   const loadQuestion = useCallback(
     async (excluded = excludeIds) => {
-      if (loadingRef.current) return;
+      if (!ownsUI() || loadingRef.current) return;
       loadingRef.current = true;
       setPhase("loading");
       try {
@@ -140,6 +180,7 @@ export function useQuizController() {
           selectedCats,
           excluded,
         );
+        if (!ownsUI()) return;
         if (!res.question) {
           setPhase("empty");
           return;
@@ -152,13 +193,14 @@ export function useQuizController() {
         setShowExplanation(false);
         setPhase("question");
       } finally {
-        loadingRef.current = false;
+        if (ownsUI()) loadingRef.current = false;
       }
     },
-    [selectedYears, selectedCats, excludeIds],
+    [selectedYears, selectedCats, excludeIds, user, epoch],
   );
 
   async function startQuiz() {
+    if (!ownsUI()) return;
     daily.stop();
     setReviewIds(null);
     setSaveError("");
@@ -169,15 +211,18 @@ export function useQuizController() {
   }
 
   async function startReview() {
+    if (!ownsUI()) return;
     daily.stop();
     if (!user) return;
     setPhase("loading");
     const queue = await getReviewQueue(user.uid);
+    if (!ownsUI()) return;
     setReviewQueue(queue);
     setPhase("review_list");
   }
 
   async function handleAnswer(key: ChoiceKey) {
+    if (!ownsUI()) return;
     if (phase !== "question" || !question) return;
     if (daily.active && answerLockRef.current) return;
     const isX2 = question.answer.length === 2;
@@ -211,12 +256,14 @@ export function useQuizController() {
   }
 
   async function handleRating(rating: SrsRating) {
+    if (!ownsUI() || staleDaily || !attemptIdRef.current) return;
     if (phase !== "answered" || !question || !user || !selected.length || savingRef.current) return;
     if (daily.active && (dailyQuestionIdRef.current !== question.id || dailyRenderedAttemptId !== attemptIdRef.current)) return;
     savingRef.current = true;
     setSaving(true);
     setSaveError("");
     try {
+      if (daily.active) daily.validateCurrentSet();
       const saved = await saveAttempt(
         user.uid,
         question.id,
@@ -225,14 +272,17 @@ export function useQuizController() {
         rating,
         attemptIdRef.current,
       );
+      if (!ownsUI()) return;
       if (daily.active) {
         await daily.afterSave(question.id, saved?.isCorrect ?? isCorrect === true);
+        if (!ownsUI()) return;
         if (finishAfterRating) {
           dailyQuestionIdRef.current = null;
           setFinishAfterRating(false);
           setPhase("summary");
         } else {
-          showDailyQuestion(await daily.nextQuestion());
+          const next = await daily.nextQuestion();
+          if (ownsUI()) showDailyQuestion(next);
         }
         return;
       }
@@ -251,6 +301,7 @@ export function useQuizController() {
         const { getDoc, doc } = await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
         const snap = await getDoc(doc(db, "questions", remaining[0]));
+        if (!ownsUI()) return;
         if (!snap.exists())
           throw new Error(
             "復習問題が見つかりません。ホームから復習一覧を開き直してください。",
@@ -265,26 +316,37 @@ export function useQuizController() {
       } else {
         await loadQuestion();
       }
-    } catch {
+    } catch (error) {
+      if (!ownsUI()) return;
+      if (error instanceof StaleDailySessionError) {
+        setStaleDaily(true);
+        setSaveError("別のタブでセットが変更されました。ホームから現在のセットを開き直してください。");
+        return;
+      }
       setPhase("answered");
       setSaveError(
         "保存または次の問題の読み込みに失敗しました。同じボタンでもう一度お試しください。回答は重複して記録されません。",
       );
     } finally {
-      savingRef.current = false;
-      setSaving(false);
+      if (ownsUI()) {
+        savingRef.current = false;
+        setSaving(false);
+      }
     }
   }
 
   async function handleShowStats() {
+    if (!ownsUI()) return;
     if (!user) return;
     setPhase("loading");
     const s = await getStats(user.uid);
+    if (!ownsUI()) return;
     setStats(s);
     setPhase("stats");
   }
 
   async function beginReview() {
+    if (!ownsUI()) return;
     daily.stop();
     if (!reviewQueue?.cards?.length) return;
     setPhase("loading");
@@ -298,6 +360,7 @@ export function useQuizController() {
     const { getDoc, doc } = await import("firebase/firestore");
     const { db } = await import("@/lib/firebase");
     const qSnap = await getDoc(doc(db, "questions", reviewQ.questionId));
+    if (!ownsUI()) return;
     if (qSnap.exists()) {
       setQuestion({ id: qSnap.id, ...qSnap.data() } as any);
       attemptIdRef.current = crypto.randomUUID();
@@ -329,17 +392,20 @@ export function useQuizController() {
     examResult,
     finishAfterRating,
     handleAnswer,
-    handleExamAnswer,
+    handleExamAnswer: ownedAction(handleExamAnswer),
     handleRating,
-    handleShowExamHistory,
+    handleShowExamHistory: ownedAction(handleShowExamHistory),
     handleShowStats,
     isCorrect,
     mounted,
-    nextExamQuestion,
+    nextExamQuestion: ownedAction(nextExamQuestion),
     phase,
     question,
     reviewQueue,
-    saveError,
+    saveError: staleDaily ? createElement("span", null, saveError, " ", createElement("button", {
+      type: "button",
+      onClick: () => { if (!ownsUI()) return; daily.stop(); setStaleDaily(false); setSaveError(""); setPhase("home"); },
+    }, "ホームに戻る")) : saveError,
     saving,
     selected,
     selectedCats,
@@ -347,7 +413,7 @@ export function useQuizController() {
     setBgmEnabled,
     setBgmTrack,
     setFinishAfterRating,
-    setPhase,
+    setPhase: guardSetter(setPhase),
     setSelectedCats,
     setSelectedYears,
     setShowAdmin,
@@ -356,8 +422,8 @@ export function useQuizController() {
     showAdmin,
     showExamWarning,
     showExplanation,
-    startExam,
-    startPartB,
+    startExam: ownedAction(startExam),
+    startPartB: ownedAction(startPartB),
     startQuiz,
     startReview,
     stats,

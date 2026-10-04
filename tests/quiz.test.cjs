@@ -77,6 +77,7 @@ const q = (id) => ({
   explanation: "解説",
 });
 async function setup(options = {}) {
+  const mockAuth = { currentUser: null };
   const storage = options.storage ?? new Map();
   const calls = [],
     questions = { q1: q("q1"), q2: q("q2") };
@@ -153,11 +154,16 @@ async function setup(options = {}) {
     },
     "firebase/auth": {
       onAuthStateChanged: (_, cb) => {
-        cb({ uid: options.uid ?? "test" });
+        const change = user => { mockAuth.currentUser = user; return cb(user); };
+        if (options.authRef) {
+          options.authRef.change = change;
+          options.authRef.currentOnly = user => { mockAuth.currentUser = user; };
+        }
+        change({ uid: options.uid ?? "test" });
         return () => {};
       },
     },
-    "@/lib/firebase": { auth: {}, db: {} },
+    "@/lib/firebase": { auth: mockAuth, db: {} },
     "@/lib/firebaseHelpers": helpers,
     "@/lib/srs": {
       SRS_OPTIONS: load("src/lib/srs.ts", {}).SRS_OPTIONS,
@@ -190,6 +196,7 @@ async function setup(options = {}) {
     storage,
     calls,
     renderer,
+    button: label => renderer.root.findAllByType('button').find(b => text(b).includes(label)),
     click,
     clickChoice: async (key) => {
       const button=renderer.root.findAllByType('button').find(b=>text(b).startsWith(key.toUpperCase()+'.'));
@@ -201,6 +208,120 @@ async function setup(options = {}) {
     close: async () => act(() => renderer.unmount()),
   };
 }
+test('live UID switch clears answered daily question and rejects captured old save handler', async () => {
+  const authRef = {};
+  const s = await setup({ uid: 'alice', authRef });
+  await s.click('今日の20問'); await s.clickChoice('a');
+  const oldRating = s.button('思い出せた').props.onClick;
+  await act(async () => authRef.change({ uid: 'bob' }));
+  assert.match(s.text(), /今日の20問/);
+  assert.doesNotMatch(s.text(), /選択肢A|思い出せた/);
+  await act(async () => oldRating());
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  await s.click('今日の20問'); await s.clickChoice('a'); await s.click('思い出せた');
+  assert.equal(s.calls.filter(Array.isArray)[0][0], 'bob');
+  await s.close();
+});
+
+test('current auth mismatch blocks saving even before observer notification', async () => {
+  const authRef = {}; const s = await setup({ uid: 'alice', authRef });
+  await s.click('今日の20問'); await s.clickChoice('a');
+  authRef.currentOnly({ uid: 'bob' });
+  await s.click('思い出せた');
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  await s.close();
+});
+
+test('UID change also discards free-quiz answers and captured exam actions', async () => {
+  const authRef = {}; const s = await setup({ uid: 'alice', authRef });
+  await s.click('クイズ'); await s.clickChoice('a');
+  const oldRating = s.button('思い出せた').props.onClick;
+  await act(async () => authRef.change({ uid: 'bob' }));
+  await act(async () => oldRating());
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  assert.doesNotMatch(s.text(), /選択肢A/);
+  await s.click('試験モード'); await s.click('2025年度');
+  await s.clickChoice('a'); await s.click('結果を見る'); await s.click('B問題へ進む');
+  await s.clickChoice('a');
+  const oldExamSave = s.button('結果を見る').props.onClick;
+  await act(async () => authRef.change({ uid: 'carol' }));
+  await act(async () => oldExamSave());
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  assert.doesNotMatch(s.text(), /選択肢A/);
+  await s.close();
+});
+
+test('old daily load cannot show a question after owner switches away and back', async () => {
+  const authRef = {}; let release;
+  const wait = new Promise(resolve => { release = resolve; });
+  const s = await setup({ uid: 'alice', authRef, dailyLoad: () => wait });
+  let pending; await act(async () => { pending = s.button('今日の20問').props.onClick(); });
+  await act(async () => authRef.change({ uid: 'bob' }));
+  await act(async () => authRef.change({ uid: 'alice' }));
+  const before = s.text();
+  await act(async () => { release({ questions: [q('q1')], progress: [], attempts: [] }); await pending; });
+  assert.equal(s.text(), before);
+  assert.equal(s.storage.size, 0);
+  await s.close();
+});
+
+test('in-flight old-owner save success/failure cannot replace new-owner UI, including A-B-A', async () => {
+  for (const [target, fails] of [['bob', false], ['alice', false], ['bob', true], ['alice', true]]) {
+    let release; const wait = new Promise(resolve => { release = resolve; });
+    const authRef = {}; const s = await setup({ uid: 'alice', authRef, onSave: async () => {
+      const result = await wait;
+      if (fails) throw Error('old owner offline');
+      return result;
+    } });
+    await s.click('今日の20問'); await s.clickChoice('a');
+    const rating = s.button('思い出せた');
+    let pending; await act(async () => { pending = rating.props.onClick(); });
+    await act(async () => authRef.change({ uid: 'bob' }));
+    if (target === 'alice') await act(async () => authRef.change({ uid: 'alice' }));
+    await s.click('今日の20問');
+    const before = s.text();
+    await act(async () => { release({ isCorrect: true }); await pending; });
+    assert.equal(s.text(), before);
+    assert.equal(s.calls.filter(Array.isArray).length, 1);
+    assert.equal(s.calls.filter(Array.isArray)[0][0], 'alice');
+    await s.close();
+  }
+});
+
+test('stale tab is rejected before server save and offers working home recovery', async () => {
+  const storage = new Map();
+  const a = await setup({ storage, dailyQuestions: [q('q1')] });
+  const b = await setup({ storage, dailyQuestions: [q('q1')] });
+  await a.click('今日の20問'); await b.click('今日の20問');
+  await a.clickChoice('a'); await a.click('思い出せた'); await a.click('次の20問');
+  await b.clickChoice('a'); await b.click('思い出せた');
+  assert.match(b.text(), /別のタブでセットが変更/);
+  assert.equal(b.calls.filter(Array.isArray).length, 0);
+  await b.click('思い出せた');
+  assert.equal(b.calls.filter(Array.isArray).length, 0);
+  await b.click('ホームに戻る'); await b.click('今日の20問');
+  await b.clickChoice('a'); await b.click('思い出せた');
+  assert.match(b.text(), /完了：1 \/ 1問/);
+  assert.equal(b.calls.filter(Array.isArray).length, 1);
+  await a.close(); await b.close();
+});
+
+test('set replacement while save is pending also exposes home recovery', async () => {
+  let release; const wait = new Promise(resolve => { release = resolve; });
+  const storage = new Map(); const s = await setup({ storage, onSave: () => wait });
+  await s.click('今日の20問'); await s.clickChoice('a');
+  const rating = s.button('思い出せた');
+  let pending; await act(async () => { pending = rating.props.onClick(); });
+  const key = [...storage.keys()].find(k => !k.endsWith(':seen'));
+  const replacement = JSON.parse(storage.get(key)); replacement.token = 'replacement';
+  storage.set(key, JSON.stringify(replacement));
+  await act(async () => { release({ isCorrect: true }); await pending; });
+  assert.match(s.text(), /別のタブでセットが変更/);
+  await s.click('ホームに戻る');
+  assert.doesNotMatch(s.text(), /保存または次の問題の読み込みに失敗/);
+  await s.close();
+});
+
 test('daily loads once, stops at twenty saved answers, and shows actual result', async () => {
   const s=await setup({dailyQuestions:Array.from({length:45},(_,i)=>q('q'+(i+1)))});
   await s.click('今日の20問');
@@ -753,7 +874,7 @@ test('historical exam preserves skipped numbers and scores only the available qu
  const s=await setup({years:['2015a','2015b'],examQuestions:{'2015a':[old('a',35),old('a',42)],'2015b':[old('b',60)]}});
  await s.click('試験モード');
  assert.match(s.text(),/原本の欠番・確認待ちの問題を除いて/);
- assert.match(s.text(),/A問題 46問・B問題 52問/);
+ assert.match(s.text(),/A問題 48問・B問題 59問/);
  await s.click('2015年度');
  assert.match(s.text(),/Q35/);
  await s.click('選択肢A');await s.click('次の問題');
