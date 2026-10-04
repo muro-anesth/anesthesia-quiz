@@ -8,6 +8,8 @@
 取り込みは `node scripts/import-reviewed-scans.mjs /absolute/reviewed-bundle.json` でdry-run。全検証・画像確認後にのみ `--apply` を付ける。`node scripts/verify-question-preservation.mjs /absolute/questions-before.json` で既存問題の不変を確認する。これらは利用者・回答・成績コレクションに触れない。
 分類候補は `src/lib/questionCategories.json`、公開済み年度は `src/lib/questionYears.json` が正本。新規年度は登録完了を確認後に追加する。既存年度の未分類整理は今回の取り込み完了後。
 
+「CE関連」は医療機器の原理・操作・保守、電気安全、医療ガス供給、手術室設備を中心とする。心電図の臨床診断などは従来の臨床分類と分け、問題文と選択肢全体で主題を判断する。新規取り込み後、既存問題も未分類に限らず見直す。境界が曖昧な設問は確認リストへ残す。変更対象は問題の分類だけで、回答履歴・正誤・成績の原記録は書き換えない（分類別集計は問題の現在の分類を参照するため再分類に追従する）。
+
 周術期管理チーム試験の過去問クイズアプリ。
 
 **本番: https://periop-quiz.web.app**

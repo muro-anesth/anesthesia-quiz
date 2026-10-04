@@ -504,7 +504,7 @@ test("scanned question preserves line breaks, figure, combination answer and exp
   const question={...q('scan1'),id:'2015a-44',year:'2015a',qnum:44,
     stem:'テスト専用設問\n（1）第一の記述\n（2）第二の記述',
     choices:{a:'（1）、（2）',b:'（1）、（3）',c:'（2）、（3）',d:'（2）、（3）、（4）',e:'（3）、（4）、（5）'},
-    answer:'d',category:'医療機器・設備',is_image_question:true,main_image:'q44-test.png',
+    answer:'d',category:'CE関連',is_image_question:true,main_image:'q44-test.png',
     explanation:'独自解説のテスト\n出題当時と現在の違い'};
   const s=await setup({question,years:['2015a','2015b']});
   await s.click('クイズ');

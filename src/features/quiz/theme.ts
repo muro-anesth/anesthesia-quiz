@@ -71,7 +71,7 @@ const CAT_COLORS: Record<
 // Additional perioperative topics retain the existing palette and do not
 // change the colors of historical categories.
 for (const [category, reference] of Object.entries({
-  "医療機器・設備": "モニタリング・バイタル",
+  "CE関連": "モニタリング・バイタル",
   "感染対策": "薬理・局所麻酔",
   "術前評価・合併症": "術後管理",
   "解剖・生理": "区域麻酔",

@@ -1,5 +1,7 @@
 import type { QuizController } from "../useQuizController";
 import { s } from "../theme";
+import historicalQuestionCounts from "@/lib/historicalQuestionCounts.json";
+const historicalCounts = historicalQuestionCounts as Record<string, {a:number;b:number}>;
 
 type Props = Pick<
   QuizController,
@@ -40,6 +42,12 @@ export function ExamSelectScreen({
             </span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {years.some(y=>Number(y.slice(0,4))<2023) && (
+              <p style={{fontSize:13,lineHeight:1.7,color:s.text,margin:0}}>
+                追加した過去問は、原本の欠番・確認待ちの問題を除いて出題します。
+                得点は実際に出題した問題数で計算します。
+              </p>
+            )}
             {[...new Set(years.map((y) => y.replace(/[ab]$/, "")))].map((y) => (
               <button
                 key={y}
@@ -57,6 +65,9 @@ export function ExamSelectScreen({
                 }}
               >
                 {y}年度
+                {historicalCounts[y] && <span style={{display:'block',fontSize:12,fontWeight:400,marginTop:6}}>
+                  A問題 {historicalCounts[y].a}問・B問題 {historicalCounts[y].b}問
+                </span>}
               </button>
             ))}
           </div>

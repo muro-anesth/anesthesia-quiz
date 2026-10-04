@@ -24,6 +24,8 @@ test('scan import creates only new question documents, never touches user record
 
 test('scan categories, diagrams, selection limits and batch limits fail closed',async()=>{
  const {validateScanImport,createScanQuestions}=await import('../scripts/scan-import-validation.mjs');
+ const ce=sample();ce.questions[0].category='CE関連';
+ assert.equal(validateScanImport(ce)[0].data.category,'CE関連');
  for(const mutate of [q=>q.category='未分類',q=>q.category='架空の分類',q=>q.review.category=false,q=>q.is_image_question=true,q=>q.answer='abc',q=>q.explanation='',q=>q.review.transcription=false]){
   const b=sample();mutate(b.questions[0]);assert.throws(()=>validateScanImport(b));
  }
