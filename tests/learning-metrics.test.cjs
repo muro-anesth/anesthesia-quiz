@@ -271,7 +271,7 @@ test('getStats exposes new category metrics while preserving legacy category agg
   assert.equal(stats.categoryLearning.length, 2);
 });
 
-test('category UI bars show coverage and fixed category color, not correctness or ranking', () => {
+test('category progress tab shows coverage only and explicitly labels its denominator', () => {
   const { StatsScreen } = load('src/features/quiz/screens/StatsScreen.tsx');
   const { catStyle } = load('src/features/quiz/theme.ts');
   const category = { name: 'CE関連', publicTotal: 60, attemptedUnique: 12, coverageRate: 20, firstAnswered: 12, firstCorrect: 7, firstRate: 58, unscoredInitialQuestions: 0 };
@@ -280,15 +280,35 @@ test('category UI bars show coverage and fixed category color, not correctness o
     stats: { total: 100, rate: 90, recentTotal: 10, categories: [], categoryLearning, learning: calc([], [], now) },
   }));
   const html = render([category]);
-  assert.match(html, /分野ごとの進み具合と初回成績/);
-  assert.match(html, /取り組んだ問題 12\/60問/); assert.match(html, /初回の正解 7\/12問（58%）/);
+  assert.match(html, /分野別の成績/);
+  assert.match(html, /解いた問題 12 \/ 全60問/); assert.doesNotMatch(html, /初回の正解 7/);
   assert.match(html, /width:20%/); assert.doesNotMatch(html, /width:58%/);
-  assert.ok(html.includes('background:' + catStyle('CE関連').color));
-  assert.match(html, /aria-valuemax="60" aria-valuenow="12"/);
+  assert.ok(html.includes('color:' + catStyle('CE関連').color));
+  assert.match(html, /aria-valuemax="100" aria-valuenow="20"/);
   assert.doesNotMatch(html, /苦手|得意|習得済み|低い順/);
-  assert.match(html, /表示上の目安/);
+  assert.match(html, /バー＝解いた割合/);
   const small = render([{ ...category, attemptedUnique: 3, firstAnswered: 3, firstCorrect: 2, firstRate: 67 }]);
-  assert.match(small, /初回の正解 2\/3問　まだ回答が少ない/); assert.doesNotMatch(small, /67%/);
-  assert.match(render([{ ...category, attemptedUnique: 0, firstAnswered: 0, firstCorrect: 0, firstRate: null }]), /未着手/);
+  assert.match(small, /解いた問題 3 \/ 全60問/); assert.doesNotMatch(small, /67%/);
+  assert.match(render([{ ...category, attemptedUnique: 0, firstAnswered: 0, firstCorrect: 0, firstRate: null }]), /解いた問題 0 \/ 全60問/);
   assert.match(render([]), /公開問題なし/);
+});
+
+test('category tabs switch both bar meaning and counts; unanswered accuracy is not zero', async () => {
+  const {create,act}=require('react-test-renderer');global.IS_REACT_ACT_ENVIRONMENT=true;
+  const {CategoryStats}=load('src/features/quiz/screens/StatsScreen.tsx');
+  const categories=[{name:'CE関連',publicTotal:60,attemptedUnique:12,coverageRate:20,firstAnswered:12,firstCorrect:7,firstRate:58,unscoredInitialQuestions:0},
+    {name:'気道管理',publicTotal:20,attemptedUnique:3,coverageRate:15,firstAnswered:3,firstCorrect:0,firstRate:0,unscoredInitialQuestions:0},
+    {name:'感染対策',publicTotal:10,attemptedUnique:0,coverageRate:0,firstAnswered:0,firstCorrect:0,firstRate:null,unscoredInitialQuestions:0}];
+  let r;await act(async()=>{r=create(React.createElement(CategoryStats,{categories}));});
+  assert.equal(r.root.findAllByProps({role:'progressbar'}).length,3);
+  await act(async()=>{r.root.findByProps({id:'category-tab-accuracy'}).props.onClick();});
+  assert.equal(r.root.findByProps({id:'category-tab-accuracy'}).props['aria-selected'],true);
+  assert.equal(r.root.findAllByProps({role:'progressbar'}).length,0);
+  const meters=r.root.findAllByProps({role:'meter'});assert.equal(meters.length,2);
+  assert.equal(meters[0].props['aria-valuenow'],58);assert.equal(meters[1].props['aria-valuenow'],0);
+  let text=JSON.stringify(r.toJSON());assert.match(text,/未着手/);assert.match(text,/まだ回答が少ないため参考値/);
+  await act(async()=>{r.root.findByProps({id:'category-tab-coverage'}).props.onClick();});
+  assert.equal(r.root.findAllByProps({role:'meter'}).length,0);
+  assert.equal(r.root.findAllByProps({role:'progressbar'})[0].props['aria-valuenow'],20);
+  await act(async()=>r.unmount());
 });

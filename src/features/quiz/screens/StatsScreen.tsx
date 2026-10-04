@@ -1,7 +1,49 @@
 import type { QuizController } from "../useQuizController";
 import { s, catStyle } from "../theme";
 import type { LearningMetrics } from "../../../lib/learningMetrics";
-import { categoryInitialResultLabel, type CategoryLearningMetrics } from "../../../lib/learningMetrics";
+import { SMALL_INITIAL_SAMPLE_DISPLAY_COUNT, type CategoryLearningMetrics } from "../../../lib/learningMetrics";
+
+export function CategoryStats({ categories }: { categories?: CategoryLearningMetrics[] }) {
+  const [view, setView] = useState<'coverage' | 'accuracy'>('coverage');
+  const coverage = view === 'coverage';
+  const accent = coverage ? '#5eead4' : '#c4b5fd';
+  return <section style={{ background: s.card, border: `1px solid ${s.border}`, borderRadius: 12, padding: 16 }}>
+    <h2 style={{ fontSize: 15, margin: '0 0 12px' }}>分野別の成績</h2>
+    <div role="tablist" aria-label="分野別の表示" style={{ display: 'flex', gap: 4, background: '#0d1526', padding: 4, borderRadius: 10 }}>
+      {([['coverage', '進み具合'], ['accuracy', '初回正答率']] as const).map(([key, label]) => <button
+        key={key} id={`category-tab-${key}`} type="button" role="tab" aria-selected={view === key}
+        aria-controls="category-results" tabIndex={view === key ? 0 : -1}
+        onClick={() => setView(key)}
+        onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'coverage' : event.key === 'End' ? 'accuracy' : view === 'coverage' ? 'accuracy' : 'coverage';
+          setView(next); document.getElementById(`category-tab-${next}`)?.focus();
+        }}
+        style={{ flex: 1, minHeight: 44, border: 0, borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', background: view === key ? '#fbbf24' : 'transparent', color: view === key ? '#172033' : s.sub }}
+      >{label}</button>)}
+    </div>
+    <div id="category-results" role="tabpanel" aria-labelledby={`category-tab-${view}`}>
+      <p style={{ fontSize: 12, color: s.sub, lineHeight: 1.6, margin: '12px 0 16px' }}>{coverage ? 'バー＝解いた割合。同じ問題は何度解いても1問。' : 'バー＝初めて解いたときの正答率。反復回答は含みません。'}</p>
+      {!categories ? <p style={{ color: s.sub }}>分野別の成績は未取得です。</p> : categories.length === 0 ? <p style={{ color: s.sub }}>公開問題なし</p> : categories.map(cat => {
+        const rate = coverage ? (cat.publicTotal > 0 ? Math.round(cat.attemptedUnique / cat.publicTotal * 100) : null) : cat.firstRate;
+        const unknown = rate === null || (!coverage && cat.firstAnswered === 0);
+        return <div key={cat.name} style={{ marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
+            <span style={{ fontSize: 13, color: catStyle(cat.name).color }}>{cat.name}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', color: unknown ? s.sub : s.text }}>{unknown ? (cat.attemptedUnique === 0 ? '未着手' : '判定不可') : `${rate}%`}</span>
+          </div>
+          <div style={{ fontSize: 12, color: s.sub, marginBottom: 7 }}>{coverage ? `解いた問題 ${cat.attemptedUnique} / 全${cat.publicTotal}問` : `初回の正解 ${cat.firstCorrect} / 回答${cat.firstAnswered}問`}</div>
+          {!unknown && <div role={coverage ? 'progressbar' : 'meter'} aria-label={`${cat.name}の${coverage ? '解いた割合' : '初回正答率'}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate!} aria-valuetext={coverage ? `全${cat.publicTotal}問中${cat.attemptedUnique}問を解答` : `${cat.firstAnswered}問中${cat.firstCorrect}問正解`} style={{ background: 'rgba(255,255,255,0.09)', borderRadius: 4, height: 7 }}>
+            <div style={{ width: `${Math.min(100, Math.max(0, rate!))}%`, height: '100%', borderRadius: 4, background: accent }} />
+          </div>}
+          {!coverage && cat.firstAnswered > 0 && cat.firstAnswered < SMALL_INITIAL_SAMPLE_DISPLAY_COUNT && <div style={{ fontSize: 11, color: s.sub, marginTop: 5 }}>まだ回答が少ないため参考値</div>}
+          {!coverage && cat.unscoredInitialQuestions > 0 && <div style={{ fontSize: 11, color: s.sub, marginTop: 5 }}>初回を判定できない{cat.unscoredInitialQuestions}問は除外</div>}
+        </div>;
+      })}
+    </div>
+  </section>;
+}
 
 function LearningCards({ metrics: m }: { metrics: LearningMetrics }) {
   const unperformed = m.attemptedUnique === 0;
@@ -116,63 +158,7 @@ export function StatsScreen({
                   </div>
                 ))}
               </div>
-              <div
-                style={{
-                  background: s.card,
-                  border: `1px solid ${s.border}`,
-                  borderRadius: 12,
-                  padding: 16,
-                }}
-              >
-                <div
-                  style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}
-                >
-                  分野ごとの進み具合と初回成績
-                </div>
-                <p style={{ fontSize: 12, color: s.sub, lineHeight: 1.6 }}>
-                  棒は取り組んだ割合です。反復回答は1問として数え、現在の分類で集計します。初回回答5問未満の注意書きは表示上の目安で、能力の判定基準ではありません。
-                </p>
-                {!stats.categoryLearning ? <p style={{ color: s.sub }}>分野別の進み具合は未取得です。</p> : stats.categoryLearning.length === 0 && <p style={{ color: s.sub }}>公開問題なし</p>}
-                {stats.categoryLearning?.map((cat: CategoryLearningMetrics) => (
-                  <div key={cat.name} style={{ marginBottom: 18 }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <span style={{ color: catStyle(cat.name).color }}>
-                        {cat.name}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, marginBottom: 4 }}>取り組んだ問題 {cat.attemptedUnique}/{cat.publicTotal}問</div>
-                    <div style={{ fontSize: 12, marginBottom: 6 }}>{categoryInitialResultLabel(cat)}</div>
-                    {cat.unscoredInitialQuestions > 0 && <div style={{ fontSize: 12, color: s.sub, marginBottom: 6 }}>初回を判定できない{cat.unscoredInitialQuestions}問は初回成績から除外（日時・正誤の欠損や競合）。</div>}
-                    <div
-                      role="progressbar"
-                      aria-label={`${cat.name}の取り組んだ割合`}
-                      aria-valuemin={0}
-                      aria-valuemax={cat.publicTotal}
-                      aria-valuenow={cat.attemptedUnique}
-                      aria-valuetext={`${cat.publicTotal}問中${cat.attemptedUnique}問に取り組み済み`}
-                      style={{
-                        background: "rgba(255,255,255,0.05)",
-                        borderRadius: 4,
-                        height: 6,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${cat.attemptedUnique / cat.publicTotal * 100}%`,
-                          height: "100%",
-                          borderRadius: 4,
-                          background: catStyle(cat.name).color,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <CategoryStats categories={stats.categoryLearning} />
             </>
           )}
         </div>
@@ -180,3 +166,4 @@ export function StatsScreen({
     </>
   );
 }
+import { useState } from "react";
