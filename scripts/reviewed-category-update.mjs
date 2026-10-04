@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {isDeepStrictEqual} from 'node:util';
+import {createHash} from 'node:crypto';
 const categories=JSON.parse(readFileSync(new URL('../src/lib/questionCategories.json',import.meta.url)));
 
 // A reviewed plan changes only category metadata. Original answers and user
@@ -8,6 +9,7 @@ const categories=JSON.parse(readFileSync(new URL('../src/lib/questionCategories.
 export function validateCategoryPlan(plan,before){
  assert.equal(plan.schemaVersion,1);
  assert.ok(Array.isArray(before)&&before.length>0,'Pre-change snapshot required');
+ assert.equal(plan.snapshotSha256,createHash('sha256').update(JSON.stringify(before)).digest('hex'),'Plan must bind to the reviewed snapshot');
  assert.ok(Array.isArray(plan.changes)&&plan.changes.length>0&&plan.changes.length<=400,'Invalid plan size');
  const originals=new Map(before.map(q=>[q.id,q.data]));
  assert.equal(originals.size,before.length,'Duplicate snapshot IDs');

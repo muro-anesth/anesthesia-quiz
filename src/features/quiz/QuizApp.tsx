@@ -34,6 +34,9 @@ export default function QuizApp() {
         <AdminPanel onClose={() => model.setShowAdmin(false)} />
       )}
       <HomeScreen
+        startDailyQuiz={model.startDailyQuiz}
+        dailySession={model.dailySession}
+        dailyError={model.dailyError}
         handleShowExamHistory={model.handleShowExamHistory}
         handleShowStats={model.handleShowStats}
         phase={model.phase}
@@ -50,6 +53,8 @@ export default function QuizApp() {
         setPhase={model.setPhase}
       />
       <QuestionScreen
+        dailySession={model.dailySession}
+        dailyActive={model.dailyActive}
         cycleComplete={model.cycleComplete}
         finishAfterRating={model.finishAfterRating}
         handleAnswer={model.handleAnswer}
@@ -65,7 +70,7 @@ export default function QuizApp() {
         setShowExplanation={model.setShowExplanation}
         showExplanation={model.showExplanation}
       />
-      <SummaryScreen phase={model.phase} setPhase={model.setPhase} />
+      <SummaryScreen phase={model.phase} setPhase={model.setPhase} dailySession={model.dailySession} dailyActive={model.dailyActive} startDailyQuiz={model.startDailyQuiz} saving={model.saving} />
       <ExamSelectScreen
         phase={model.phase}
         saving={model.saving}

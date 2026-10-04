@@ -16,6 +16,7 @@ import { type SrsRating } from "@/lib/srs";
 
 import type { Question, Phase, ChoiceKey } from "./types";
 import { playSound } from "./sound";
+import { useDailyQuiz } from "./useDailyQuiz";
 
 export function useQuizController() {
   const [user, setUser] = useState<User | null>(null);
@@ -43,6 +44,39 @@ export function useQuizController() {
   const [saveError, setSaveError] = useState("");
   const [reviewIds, setReviewIds] = useState<string[] | null>(null);
   const [finishAfterRating, setFinishAfterRating] = useState(false);
+  const daily = useDailyQuiz(user?.uid, phase);
+  const dailyRenderedAttemptId = daily.active && daily.session && question ? daily.attemptId(question.id) : null;
+  const answerLockRef = useRef(false);
+  const dailyQuestionIdRef = useRef<string | null>(null);
+  const dailySelectedRef = useRef<ChoiceKey[]>([]);
+
+  function showDailyQuestion(next: Question | null) {
+    dailyQuestionIdRef.current = next?.id ?? null;
+    if (!next) { setPhase("summary"); return; }
+    setQuestion(next);
+    attemptIdRef.current = daily.attemptId(next.id);
+    answerLockRef.current = false;
+    dailySelectedRef.current = [];
+    setSelected([]);
+    setIsCorrect(null);
+    setShowExplanation(false);
+    setPhase("question");
+  }
+
+  async function startDailyQuiz() {
+    if (!user || loadingRef.current || savingRef.current) return;
+    loadingRef.current = true;
+    setReviewIds(null);
+    setSaveError("");
+    setFinishAfterRating(false);
+    setCycleComplete(false);
+    setPhase("loading");
+    try { showDailyQuestion(await daily.begin()); }
+    catch {
+      daily.setError("今日の20問を開始できませんでした。通信とブラウザの保存設定を確認し、もう一度お試しください。");
+      setPhase("home");
+    } finally { loadingRef.current = false; }
+  }
 
   const { bgmEnabled, setBgmEnabled, bgmTrack, setBgmTrack } = useQuizAudio();
   const {
@@ -125,6 +159,7 @@ export function useQuizController() {
   );
 
   async function startQuiz() {
+    daily.stop();
     setReviewIds(null);
     setSaveError("");
     setFinishAfterRating(false);
@@ -134,6 +169,7 @@ export function useQuizController() {
   }
 
   async function startReview() {
+    daily.stop();
     if (!user) return;
     setPhase("loading");
     const queue = await getReviewQueue(user.uid);
@@ -143,14 +179,18 @@ export function useQuizController() {
 
   async function handleAnswer(key: ChoiceKey) {
     if (phase !== "question" || !question) return;
+    if (daily.active && answerLockRef.current) return;
     const isX2 = question.answer.length === 2;
 
     if (isX2) {
-      const next = selected.includes(key)
-        ? selected.filter((k) => k !== key)
-        : [...selected, key];
+      const currentSelected = daily.active ? dailySelectedRef.current : selected;
+      const next = currentSelected.includes(key)
+        ? currentSelected.filter((k) => k !== key)
+        : [...currentSelected, key];
+      if (daily.active) dailySelectedRef.current = next;
       setSelected(next);
       if (next.length === 2) {
+        answerLockRef.current = true;
         setPhase("answered");
         const normalize = (s: string) => s.split("").sort().join("");
         const correct = normalize(next.join("")) === normalize(question.answer);
@@ -159,6 +199,7 @@ export function useQuizController() {
         playSound(correct ? "correct" : "incorrect");
       }
     } else {
+      answerLockRef.current = true;
       setSelected([key]);
       setPhase("answered");
       const normalize = (s: string) => s.split("").sort().join("");
@@ -170,12 +211,13 @@ export function useQuizController() {
   }
 
   async function handleRating(rating: SrsRating) {
-    if (!question || !user || !selected.length || savingRef.current) return;
+    if (phase !== "answered" || !question || !user || !selected.length || savingRef.current) return;
+    if (daily.active && (dailyQuestionIdRef.current !== question.id || dailyRenderedAttemptId !== attemptIdRef.current)) return;
     savingRef.current = true;
     setSaving(true);
     setSaveError("");
     try {
-      await saveAttempt(
+      const saved = await saveAttempt(
         user.uid,
         question.id,
         selected.join(""),
@@ -183,6 +225,17 @@ export function useQuizController() {
         rating,
         attemptIdRef.current,
       );
+      if (daily.active) {
+        await daily.afterSave(question.id, saved?.isCorrect ?? isCorrect === true);
+        if (finishAfterRating) {
+          dailyQuestionIdRef.current = null;
+          setFinishAfterRating(false);
+          setPhase("summary");
+        } else {
+          showDailyQuestion(await daily.nextQuestion());
+        }
+        return;
+      }
       if (finishAfterRating) {
         setFinishAfterRating(false);
         setPhase("summary");
@@ -232,6 +285,7 @@ export function useQuizController() {
   }
 
   async function beginReview() {
+    daily.stop();
     if (!reviewQueue?.cards?.length) return;
     setPhase("loading");
     setReviewIds(
@@ -255,6 +309,10 @@ export function useQuizController() {
   }
 
   return {
+    startDailyQuiz,
+    dailySession: daily.session,
+    dailyActive: daily.active,
+    dailyError: daily.error,
     authLoading,
     beginReview,
     bgmEnabled,

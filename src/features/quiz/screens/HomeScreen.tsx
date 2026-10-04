@@ -13,6 +13,9 @@ type Props = Pick<
   | "startQuiz"
   | "startReview"
   | "userProfile"
+  | "startDailyQuiz"
+  | "dailySession"
+  | "dailyError"
 >;
 
 export function HomeScreen({
@@ -24,6 +27,9 @@ export function HomeScreen({
   startQuiz,
   startReview,
   userProfile,
+  startDailyQuiz,
+  dailySession,
+  dailyError,
 }: Props) {
   return (
     <>
@@ -53,6 +59,20 @@ export function HomeScreen({
               gap: 12,
             }}
           >
+            <button
+              onClick={startDailyQuiz}
+              style={{ width: "100%", padding: 18, borderRadius: 14, border: "1px solid #2dd4bf", background: "#134e4a", color: "#f0fdfa", fontSize: 17, fontWeight: 700, cursor: "pointer" }}
+            >
+              今日の20問 — {dailySession ? dailySession.done.length === dailySession.ids.length ? "次の20問" : "続きから" : "始める"}
+              {dailySession && <span style={{ display: "block", fontSize: 13, marginTop: 6 }}>保存済み {dailySession.done.length} / {dailySession.ids.length}問</span>}
+            </button>
+            <p style={{ color: s.sub, fontSize: 12, margin: 0, lineHeight: 1.6 }}>未回答・復習・最近間違えた問題から、分野の偏りを抑えて出題。1日何回でも。</p>
+            <details style={{ color: s.sub, fontSize: 12, lineHeight: 1.6 }}>
+              <summary style={{ cursor: "pointer" }}>再開について</summary>
+              <p>進捗は同じ端末・ブラウザ内に保存します（端末間同期なし）。ブラウザの保存データを消すと再開情報も失われます。</p>
+              <p>日本時間で日付が変わると、開始・再開ボタンからは新しいセットを開始します。解答中のセットはそのまま続けられます。</p>
+            </details>
+            {dailyError && <p role="alert" style={{ color: "#fca5a5", fontSize: 13 }}>{dailyError}</p>}
             <button
               onClick={startQuiz}
               style={{

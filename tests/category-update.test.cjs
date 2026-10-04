@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const before=[{id:'2025a-1',data:{stem:'医療機器の試験設問',answer:'a',category:'未分類',choices:{a:'保持'}}}];
-const plan=()=>({schemaVersion:1,changes:[{id:'2025a-1',category:'CE関連',review:{approved:true,reason:'医療機器の電気安全を問う設問のため。'}}]});
+const plan=()=>({schemaVersion:1,snapshotSha256:require('node:crypto').createHash('sha256').update(JSON.stringify(before)).digest('hex'),changes:[{id:'2025a-1',category:'CE関連',review:{approved:true,reason:'医療機器の電気安全を問う設問のため。'}}]});
 test('reviewed CE reclassification writes category only and aborts on stale source',async()=>{
  const {applyReviewedCategories}=await import('../scripts/reviewed-category-update.mjs');
  const writes=[],collections=[];
@@ -19,4 +19,8 @@ test('category plans reject unreviewed, ambiguous, duplicate and out-of-scope ch
  for(const mutate of [p=>p.changes[0].review.approved=false,p=>p.changes[0].review.reason='',p=>p.changes[0].category='未分類',p=>p.changes[0].id='users/secret',p=>p.changes.push(p.changes[0]),p=>p.changes[0].id='2015a-1']){
   const p=plan();mutate(p);assert.throws(()=>validateCategoryPlan(p,before));
  }
+ const replaced=structuredClone(before);replaced[0].data.stem='レビュー後の別データ';
+ assert.throws(()=>validateCategoryPlan(plan(),replaced),/bind/);
+ const unbound=plan();delete unbound.snapshotSha256;
+ assert.throws(()=>validateCategoryPlan(unbound,before),/bind/);
 });

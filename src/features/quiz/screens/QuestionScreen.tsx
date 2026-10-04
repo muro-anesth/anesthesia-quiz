@@ -21,6 +21,8 @@ type Props = Pick<
   | "setPhase"
   | "setShowExplanation"
   | "showExplanation"
+  | "dailySession"
+  | "dailyActive"
 >;
 
 export function QuestionScreen({
@@ -38,6 +40,8 @@ export function QuestionScreen({
   setPhase,
   setShowExplanation,
   showExplanation,
+  dailySession,
+  dailyActive,
 }: Props) {
   return (
     <>
@@ -49,6 +53,7 @@ export function QuestionScreen({
             aria-label="問題と選択肢"
           >
             {/* 上部ナビ */}
+            {dailyActive && dailySession && <p aria-live="polite" style={{ color: "#5eead4", fontSize: 14 }}>今日の20問 · {dailySession.ids.indexOf(question.id) + 1} / {dailySession.ids.length}問</p>}
             <div
               style={{
                 display: "flex",

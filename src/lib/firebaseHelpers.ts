@@ -143,30 +143,34 @@ export async function getReviewQueue(uid: string) {
 
 export async function getStats(uid: string) {
   try {
-    const snap = await getDocs(
-      query(collection(db, 'users', uid, 'attempts'), orderBy('answeredAt', 'desc'))
-    );
+    const { calculateLearningMetrics, calculateCategoryLearningMetrics, readAnswerInstant } = await import('./learningMetrics');
+    // No orderBy: Firestore otherwise omits records lacking answeredAt.
+    // Read only; publication uses the same year list as the selection UI.
+    const [snap, questionSnap] = await Promise.all([
+      getDocs(collection(db, 'users', uid, 'attempts')),
+      getDocs(collection(db, 'questions')),
+    ]);
+    const now = new Date();
     const attempts = snap.docs.map(d => d.data() as any);
     const total = attempts.length;
     const correct = attempts.filter(a => a.isCorrect).length;
-
-    if (total === 0) {
-      return { total: 0, correct: 0, rate: 0, categories: [], recentTotal: 0, recentCorrect: 0 };
+    const qMap = new Map<string, string>();
+    const publicIds: string[] = [];
+    const publicQuestions: { id: string; category: unknown }[] = [];
+    for (const q of questionSnap.docs) {
+      const data = q.data();
+      qMap.set(q.id, data.category ?? '未分類');
+      if (questionYears.includes(data.year)) {
+        publicIds.push(q.id);
+        publicQuestions.push({ id: q.id, category: data.category });
+      }
     }
+    const learning = calculateLearningMetrics(publicIds, attempts, now);
+    const categoryLearning = calculateCategoryLearningMetrics(publicQuestions, attempts, now);
 
-    // 問題IDの重複を排除して一括取得
-    const uniqueIds = [...new Set(attempts.map(a => a.questionId))];
-    const qMap: Record<string, string> = {};
-    await Promise.all(
-      uniqueIds.map(async id => {
-        const qSnap = await getDoc(doc(db, 'questions', id));
-        if (qSnap.exists()) qMap[id] = qSnap.data().category ?? '未分類';
-      })
-    );
-
-    const categoryMap: Record<string, { correct: number; total: number }> = {};
+    const categoryMap: Record<string, { correct: number; total: number }> = Object.create(null);
     for (const a of attempts) {
-      const cat = qMap[a.questionId] ?? '未分類';
+      const cat = qMap.get(a.questionId) ?? '未分類';
       if (!categoryMap[cat]) categoryMap[cat] = { correct: 0, total: 0 };
       categoryMap[cat].total++;
       if (a.isCorrect) categoryMap[cat].correct++;
@@ -177,20 +181,28 @@ export async function getStats(uid: string) {
       rate: Math.round((s.correct / s.total) * 100),
     })).sort((a, b) => a.rate - b.rate);
 
-    const sevenDaysAgo = new Date();
+    const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recent = attempts.filter(a => a.answeredAt?.toDate() >= sevenDaysAgo);
+    const cutoff = readAnswerInstant(sevenDaysAgo)!;
+    const recent = attempts.filter(a => {
+      const at = readAnswerInstant(a.answeredAt);
+      return at !== null && (at.seconds > cutoff.seconds ||
+        (at.seconds === cutoff.seconds && at.nanoseconds >= cutoff.nanoseconds));
+    });
 
     return {
       total, correct,
-      rate: Math.round((correct / total) * 100),
+      rate: total ? Math.round((correct / total) * 100) : 0,
       categories,
       recentTotal: recent.length,
       recentCorrect: recent.filter(a => a.isCorrect).length,
+      learning,
+      categoryLearning,
+      statsError: false,
     };
   } catch (err) {
     console.error('getStats error:', err);
-    return { total: 0, correct: 0, rate: 0, categories: [], recentTotal: 0, recentCorrect: 0 };
+    return { total: 0, correct: 0, rate: 0, categories: [], recentTotal: 0, recentCorrect: 0, learning: null, categoryLearning: null, statsError: true };
   }
 }
 
