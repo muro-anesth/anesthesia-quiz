@@ -526,7 +526,10 @@ test("scanned question preserves line breaks, figure, combination answer and exp
 test('historical exam preserves skipped numbers and scores only the available questions',async()=>{
  const old=(part,n)=>({...q('q'+n),id:`2015${part}-${n}`,year:`2015${part}`,qnum:n});
  const s=await setup({years:['2015a','2015b'],examQuestions:{'2015a':[old('a',35),old('a',42)],'2015b':[old('b',60)]}});
- await s.click('試験モード');await s.click('2015年度');
+ await s.click('試験モード');
+ assert.match(s.text(),/原本の欠番・確認待ちの問題を除いて/);
+ assert.match(s.text(),/A問題 46問・B問題 52問/);
+ await s.click('2015年度');
  assert.match(s.text(),/Q35/);
  await s.click('選択肢A');await s.click('次の問題');
  assert.match(s.text(),/Q42/);
