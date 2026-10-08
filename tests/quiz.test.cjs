@@ -678,9 +678,20 @@ test("screen markup matches original unaffected screens and reviewed answer pane
   const hashes = {};
   const crypto = require("node:crypto");
   const snap = (s, name) => {
+    // The requested exam-only explanation button is covered by interaction tests.
+    // Remove only that new node when comparing the otherwise unchanged old dock.
+    const tree = s.renderer.toJSON();
+    if (name === "exam-answered") {
+      const strip = node => {
+        if (!node || typeof node !== 'object') return;
+        if (Array.isArray(node)) return node.forEach(strip);
+        if (node.children) { node.children = node.children.filter(child => !(child?.type === 'button' && child.children?.join('') === '解説を見る')); node.children.forEach(strip); }
+      };
+      strip(tree);
+    }
     hashes[name] = crypto
       .createHash("sha256")
-      .update(JSON.stringify(s.renderer.toJSON()))
+      .update(JSON.stringify(tree))
       .digest("hex");
   };
   let s = await setup();
@@ -843,6 +854,26 @@ test("ending can be cancelled; opening and closing explanation never saves an an
   await s.click("思い出せた");
   assert.match(s.text(), /問題 q2/);
   assert.equal(s.calls.filter(Array.isArray).length, 1);
+  await s.close();
+});
+
+test("exam explanation is available only after answering and never changes grading or saves", async () => {
+  const s = await setup();
+  await s.click("試験モード"); await s.click("2025年度");
+  assert.equal(s.renderer.root.findAllByType('button').filter(b=>b.children.join('')==='解説を見る').length,0);
+  await s.click("選択肢A");
+  const before = JSON.stringify(s.calls);
+  await s.click("解説を見る");
+  assert.equal(s.renderer.root.findAllByProps({role:'dialog'}).length,1);
+  assert.match(s.text(),/解説/);
+  await s.click("×");
+  assert.equal(s.renderer.root.findAllByProps({role:'dialog'}).length,0);
+  assert.equal(JSON.stringify(s.calls),before);
+  await s.click("解説を見る"); await s.click("×"); await s.click("結果を見る");
+  await s.click("B問題へ進む");
+  assert.equal(s.renderer.root.findAllByProps({role:'dialog'}).length,0);
+  await s.click("選択肢B"); await s.click("解説を見る"); await s.click("×"); await s.click("結果を見る");
+  assert.equal(s.calls.find(c=>Array.isArray(c)&&c[0]==='exam')[1].score,50);
   await s.close();
 });
 

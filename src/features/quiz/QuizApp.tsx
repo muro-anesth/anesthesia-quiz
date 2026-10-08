@@ -92,6 +92,8 @@ export default function QuizApp() {
         setPhase={model.setPhase}
         setShowExamWarning={model.setShowExamWarning}
         showExamWarning={model.showExamWarning}
+        showExplanation={model.showExplanation}
+        setShowExplanation={model.setShowExplanation}
       />
       <ExamTransitionScreen
         examAnswers={model.examAnswers}

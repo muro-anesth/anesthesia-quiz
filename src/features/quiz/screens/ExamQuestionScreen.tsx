@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import type { QuizController } from "../useQuizController";
+import { ExplanationDialog } from "../components/ExplanationDialog";
 import { s, catStyle } from "../theme";
 import { CHOICE_KEYS } from "../types";
 import { QuestionText } from "../components/QuestionText";
@@ -23,6 +25,8 @@ type Props = Pick<
   | "setPhase"
   | "setShowExamWarning"
   | "showExamWarning"
+  | "showExplanation"
+  | "setShowExplanation"
 >;
 
 export function ExamQuestionScreen({
@@ -39,7 +43,11 @@ export function ExamQuestionScreen({
   setPhase,
   setShowExamWarning,
   showExamWarning,
+  showExplanation,
+  setShowExplanation,
 }: Props) {
+  const explanationButton = useRef<HTMLButtonElement>(null);
+  const closeExplanation = () => { setShowExplanation(false); explanationButton.current?.focus(); };
   return (
     <>
       {(phase === "exam_question" || phase === "exam_answered") && question && (
@@ -300,6 +308,7 @@ export function ExamQuestionScreen({
                   正答：{question.answer.toUpperCase().split("").join("・")}
                 </span>
               </div>
+              {question.explanation && <button ref={explanationButton} type="button" onClick={() => setShowExplanation(true)} style={{ minHeight: 44, width: "100%", marginBottom: 10, padding: "8px 12px", borderRadius: 8, border: `1px solid ${s.border}`, background: "transparent", color: "#38bdf8" }}>解説を見る</button>}
               <button
                 onClick={nextExamQuestion}
                 style={{
@@ -318,6 +327,7 @@ export function ExamQuestionScreen({
                   ? "結果を見る"
                   : "次の問題 →"}
               </button>
+              {showExplanation && question.explanation && <ExplanationDialog text={question.explanation} onClose={closeExplanation} />}
             </section>
           )}
         </div>
