@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import type { QuizController } from "../useQuizController";
 import { ExplanationDialog } from "../components/ExplanationDialog";
-import { StarControl, type StarControlProps } from "../components/StarControl";
-import { s, catStyle } from "../theme";
+import type { StarControlProps } from "../components/StarControl";
+import { QuestionCardHeader } from "../components/QuestionCardHeader";
+import { s } from "../theme";
 import { CHOICE_KEYS } from "../types";
 import { QuestionText } from "../components/QuestionText";
 import {
@@ -148,7 +149,6 @@ export function ExamQuestionScreen({
               >
                 ← ホーム
               </button>
-              <StarControl {...star} />
               <span style={{ fontSize: 13, color: s.sub }}>
                 {examBaseYear}年度 {examPart.toUpperCase()}問題 |{" "}
                 {examIndex + 1}/{examQuestions.length}問
@@ -163,36 +163,7 @@ export function ExamQuestionScreen({
                 border: `1px solid ${s.border}`,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginBottom: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    ...catStyle(question.category),
-                  }}
-                >
-                  {question.category}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    background: "rgba(255,255,255,0.05)",
-                    color: s.sub,
-                  }}
-                >
-                  Q{question.qnum}
-                </span>
-              </div>
+              <QuestionCardHeader category={question.category} identifier={`Q${question.qnum}`} star={star} />
 
               <p style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>
                 <QuestionText text={question.stem} />
@@ -298,7 +269,7 @@ export function ExamQuestionScreen({
           </div>
           {phase === "exam_answered" && (
             <section aria-label="回答結果と次の操作" style={answerDock}>
-              <StarControl {...star} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
               <div
                 role="status"
                 aria-live="polite"
@@ -306,7 +277,6 @@ export function ExamQuestionScreen({
                   fontSize: 18,
                   fontWeight: 700,
                   color: isCorrect ? "#34d399" : "#f87171",
-                  marginBottom: 12,
                 }}
               >
                 {isCorrect ? "✓ 正解" : "✗ 不正解"}
@@ -314,7 +284,8 @@ export function ExamQuestionScreen({
                   正答：{question.answer.toUpperCase().split("").join("・")}
                 </span>
               </div>
-              {question.explanation && <button ref={explanationButton} type="button" onClick={() => setShowExplanation(true)} style={{ minHeight: 44, width: "100%", marginBottom: 10, padding: "8px 12px", borderRadius: 8, border: `1px solid ${s.border}`, background: "transparent", color: "#38bdf8" }}>解説を見る</button>}
+              {question.explanation && <button ref={explanationButton} type="button" onClick={() => setShowExplanation(true)} style={{ minHeight: 44, padding: "8px 12px", borderRadius: 8, border: `1px solid ${s.border}`, background: "transparent", color: "#38bdf8" }}>解説を見る</button>}
+              </div>
               <button
                 onClick={nextExamQuestion}
                 style={{

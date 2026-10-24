@@ -578,6 +578,30 @@ test('stars toggle before and after answering without writing attempts or changi
   await s.close();
 });
 
+test('each study mode has one star in the question card and explanation beside the result', async () => {
+  for (const mode of ['クイズ', '今日の20問', '復習モード', '試験モード']) {
+    const s = await setup(); await s.click(mode);
+    if (mode === '復習モード') await s.click('復習を開始');
+    if (mode === '試験モード') await s.click('2025年度');
+    const stars = () => s.renderer.root.findAllByType('button').filter(b => /^★を(付ける|外す)$/.test(b.props['aria-label'] ?? ''));
+    assert.equal(stars().length, 1, mode + ' before');
+    const header = s.renderer.root.findByProps({'aria-label':'問題情報とチェック'});
+    assert.equal(header.findAllByType('button').length, 1);
+    await s.click('☆ チェック');
+    await s.clickChoice('a');
+    assert.equal(stars().length, 1, mode + ' after');
+    const dock = s.renderer.root.findByProps({'aria-label':'回答結果と次の操作'});
+    assert.equal(dock.findAllByType('button').filter(b => /^★を/.test(b.props['aria-label'] ?? '')).length, 0);
+    const explanation = s.button('解説を見る');
+    assert.equal(explanation.parent.findAllByProps({role:'status'}).length, 1);
+    assert.equal(explanation.props.style.width, undefined);
+    await s.click('★ チェック済み');
+    assert.equal(s.starCalls.length, 2);
+    assert.equal(s.calls.filter(Array.isArray).length, 0);
+    await s.close();
+  }
+});
+
 test('stars persist across reloads and are separate for each account', async () => {
   const store = new Map([['alice', new Set(['q2'])]]);
   let s = await setup({ uid: 'alice', starStore: store });

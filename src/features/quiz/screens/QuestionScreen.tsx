@@ -1,8 +1,9 @@
 import type { QuizController } from "../useQuizController";
-import { s, catStyle } from "../theme";
+import { s } from "../theme";
 import { CHOICE_KEYS } from "../types";
 import { AnswerPanel } from "../components/AutomaticAnswerPanel";
-import { StarControl, type StarControlProps } from "../components/StarControl";
+import type { StarControlProps } from "../components/StarControl";
+import { QuestionCardHeader } from "../components/QuestionCardHeader";
 import { QuestionText } from "../components/QuestionText";
 import { questionViewport, questionScroll } from "../components/answerLayout";
 
@@ -81,7 +82,6 @@ export function QuestionScreen({
               >
                 ← ホーム
               </button>
-              <StarControl {...star} />
               {cycleComplete && (
                 <span style={{ fontSize: 12, color: "#fbbf24" }}>
                   🎉 全問完了
@@ -97,36 +97,7 @@ export function QuestionScreen({
                 border: `1px solid ${s.border}`,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  marginBottom: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    ...catStyle(question.category),
-                  }}
-                >
-                  {question.category}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    background: "rgba(255,255,255,0.05)",
-                    color: s.sub,
-                  }}
-                >
-                  {question.year} Q{question.qnum}
-                </span>
-              </div>
+              <QuestionCardHeader category={question.category} identifier={`${question.year} Q${question.qnum}`} star={star} />
 
               <p style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 16 }}>
                 <QuestionText text={question.stem} />
@@ -232,7 +203,6 @@ export function QuestionScreen({
               question={question}
               isCorrect={isCorrect}
               handleContinue={handleContinue}
-              star={star}
               saving={saving}
               saveError={saveError}
               showExplanation={showExplanation}
