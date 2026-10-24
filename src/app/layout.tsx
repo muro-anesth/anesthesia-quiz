@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import appIconRelease from "../lib/app-icon-release.json";
 
 export const metadata: Metadata = {
   // ⚠️ **ブラウザの自動翻訳を止める。**
@@ -20,8 +21,8 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    apple: "/apple-touch-icon.png",
-    icon: "/icon.png",
+    apple: `/apple-touch-icon.png?v=${appIconRelease.version}`,
+    icon: `/icon.png?v=${appIconRelease.version}`,
   },
 };
 
