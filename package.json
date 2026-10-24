@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
     "test": "node --test tests/*.test.cjs",
-    "test:rules": "node tests/rules-check.cjs"
+    "test:rules": "node tests/rules-check.cjs",
+    "test:star-rules": "firebase emulators:exec --only firestore --project demo-periop-stars --config firebase.rules-test.json --non-interactive 'node --test tests/star-rules.test.cjs'",
+    "preview:study": "node scripts/serve-study-preview.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -21,6 +23,7 @@
     "ts-fsrs": "^5.3.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

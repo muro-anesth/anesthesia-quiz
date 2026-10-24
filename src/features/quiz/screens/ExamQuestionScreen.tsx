@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { QuizController } from "../useQuizController";
 import { ExplanationDialog } from "../components/ExplanationDialog";
+import { StarControl, type StarControlProps } from "../components/StarControl";
 import { s, catStyle } from "../theme";
 import { CHOICE_KEYS } from "../types";
 import { QuestionText } from "../components/QuestionText";
@@ -27,7 +28,7 @@ type Props = Pick<
   | "showExamWarning"
   | "showExplanation"
   | "setShowExplanation"
->;
+> & { star: StarControlProps };
 
 export function ExamQuestionScreen({
   examBaseYear,
@@ -45,6 +46,7 @@ export function ExamQuestionScreen({
   showExamWarning,
   showExplanation,
   setShowExplanation,
+  star,
 }: Props) {
   const explanationButton = useRef<HTMLButtonElement>(null);
   const closeExplanation = () => { setShowExplanation(false); explanationButton.current?.focus(); };
@@ -127,6 +129,8 @@ export function ExamQuestionScreen({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                flexWrap: "wrap",
+                gap: 8,
                 marginBottom: 12,
               }}
             >
@@ -144,6 +148,7 @@ export function ExamQuestionScreen({
               >
                 ← ホーム
               </button>
+              <StarControl {...star} />
               <span style={{ fontSize: 13, color: s.sub }}>
                 {examBaseYear}年度 {examPart.toUpperCase()}問題 |{" "}
                 {examIndex + 1}/{examQuestions.length}問
@@ -293,6 +298,7 @@ export function ExamQuestionScreen({
           </div>
           {phase === "exam_answered" && (
             <section aria-label="回答結果と次の操作" style={answerDock}>
+              <StarControl {...star} />
               <div
                 role="status"
                 aria-live="polite"

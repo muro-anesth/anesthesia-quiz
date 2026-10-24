@@ -1,47 +1,45 @@
 import type { QuizController } from "../useQuizController";
 import { s, catStyle } from "../theme";
 import { CHOICE_KEYS } from "../types";
-import { AnswerPanel } from "../components/AnswerPanel";
+import { AnswerPanel } from "../components/AutomaticAnswerPanel";
+import { StarControl, type StarControlProps } from "../components/StarControl";
 import { QuestionText } from "../components/QuestionText";
 import { questionViewport, questionScroll } from "../components/answerLayout";
 
 type Props = Pick<
   QuizController,
   | "cycleComplete"
-  | "finishAfterRating"
   | "handleAnswer"
-  | "handleRating"
+  | "handleContinue"
   | "isCorrect"
   | "phase"
   | "question"
   | "saveError"
   | "saving"
   | "selected"
-  | "setFinishAfterRating"
   | "setPhase"
   | "setShowExplanation"
   | "showExplanation"
   | "dailySession"
   | "dailyActive"
->;
+> & { star: StarControlProps };
 
 export function QuestionScreen({
   cycleComplete,
-  finishAfterRating,
   handleAnswer,
-  handleRating,
+  handleContinue,
   isCorrect,
   phase,
   question,
   saveError,
   saving,
   selected,
-  setFinishAfterRating,
   setPhase,
   setShowExplanation,
   showExplanation,
   dailySession,
   dailyActive,
+  star,
 }: Props) {
   return (
     <>
@@ -59,6 +57,8 @@ export function QuestionScreen({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                flexWrap: "wrap",
+                gap: 8,
                 marginBottom: 12,
               }}
             >
@@ -66,7 +66,7 @@ export function QuestionScreen({
                 disabled={saving}
                 onClick={() =>
                   phase === "answered"
-                    ? setFinishAfterRating(true)
+                    ? handleContinue(true)
                     : setPhase("home")
                 }
                 style={{
@@ -81,6 +81,7 @@ export function QuestionScreen({
               >
                 ← ホーム
               </button>
+              <StarControl {...star} />
               {cycleComplete && (
                 <span style={{ fontSize: 12, color: "#fbbf24" }}>
                   🎉 全問完了
@@ -230,9 +231,8 @@ export function QuestionScreen({
             <AnswerPanel
               question={question}
               isCorrect={isCorrect}
-              finishAfterRating={finishAfterRating}
-              setFinishAfterRating={setFinishAfterRating}
-              handleRating={handleRating}
+              handleContinue={handleContinue}
+              star={star}
               saving={saving}
               saveError={saveError}
               showExplanation={showExplanation}

@@ -12,6 +12,7 @@ type Props = Pick<
   | "setShowAdmin"
   | "startQuiz"
   | "startReview"
+  | "showStarred"
   | "userProfile"
   | "startDailyQuiz"
   | "dailySession"
@@ -26,6 +27,7 @@ export function HomeScreen({
   setShowAdmin,
   startQuiz,
   startReview,
+  showStarred,
   userProfile,
   startDailyQuiz,
   dailySession,
@@ -137,6 +139,7 @@ export function HomeScreen({
             >
               🔥 復習モード
             </button>
+            <button onClick={showStarred} style={{ width: '100%', padding: 18, borderRadius: 14, border: '1px solid #b58b25', background: '#332b18', color: '#fde68a', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>★を振り返る</button>
             <button
               onClick={handleShowStats}
               style={{

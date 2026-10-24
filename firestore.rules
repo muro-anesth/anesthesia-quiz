@@ -22,5 +22,15 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+    match /users/{userId}/questionStars/{questionId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['questionId', 'starred', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['questionId', 'starred', 'updatedAt'])
+        && request.resource.data.questionId == questionId
+        && request.resource.data.starred is bool
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
   }
 }

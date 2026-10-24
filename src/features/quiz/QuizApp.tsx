@@ -15,9 +15,18 @@ import { ExamHistoryScreen } from "./screens/ExamHistoryScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 import { StatsScreen } from "./screens/StatsScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { StarredScreen } from "./screens/StarredScreen";
 
 export default function QuizApp() {
   const model = useQuizController();
+  const star = {
+    starred: model.questionStarred,
+    loading: model.starLoading,
+    busy: model.starSaving,
+    error: model.starError,
+    onToggle: () => { if (model.question) void model.toggleStar(model.question.id); },
+    onRetry: model.reloadStars,
+  };
   if (!model.mounted || model.authLoading) return null;
   return (
     <div
@@ -44,6 +53,7 @@ export default function QuizApp() {
         setShowAdmin={model.setShowAdmin}
         startQuiz={model.startQuiz}
         startReview={model.startReview}
+        showStarred={model.showStarred}
         userProfile={model.userProfile}
       />
       <LoadingScreen phase={model.phase} />
@@ -56,16 +66,15 @@ export default function QuizApp() {
         dailySession={model.dailySession}
         dailyActive={model.dailyActive}
         cycleComplete={model.cycleComplete}
-        finishAfterRating={model.finishAfterRating}
         handleAnswer={model.handleAnswer}
-        handleRating={model.handleRating}
+        handleContinue={model.handleContinue}
+        star={star}
         isCorrect={model.isCorrect}
         phase={model.phase}
         question={model.question}
         saveError={model.saveError}
         saving={model.saving}
         selected={model.selected}
-        setFinishAfterRating={model.setFinishAfterRating}
         setPhase={model.setPhase}
         setShowExplanation={model.setShowExplanation}
         showExplanation={model.showExplanation}
@@ -79,6 +88,7 @@ export default function QuizApp() {
         years={model.years}
       />
       <ExamQuestionScreen
+        star={star}
         examBaseYear={model.examBaseYear}
         examIndex={model.examIndex}
         examPart={model.examPart}
@@ -121,6 +131,7 @@ export default function QuizApp() {
         saving={model.saving}
         setPhase={model.setPhase}
       />
+      <StarredScreen {...model} />
       <StatsScreen
         phase={model.phase}
         saving={model.saving}

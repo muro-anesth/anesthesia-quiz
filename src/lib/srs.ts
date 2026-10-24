@@ -6,6 +6,10 @@ const f = fsrs(generatorParameters({ enable_fuzz: true, maximum_interval: 365 })
 
 export type SrsRating = "again" | "hard" | "good" | "easy";
 
+export function automaticRating(isCorrect: boolean): SrsRating {
+  return isCorrect ? 'good' : 'again';
+}
+
 const RATING_MAP: Record<SrsRating, Rating> = {
   again: Rating.Again,
   hard: Rating.Hard,

@@ -5,6 +5,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- END:nextjs-agent-rules -->
 
 ## 利用者の指示（2026-09-13）
+- 2026-10-25: 回答後の4段階の手応え選択は廃止。正解Good／不正解Againで自動復習。「★を振り返る」は独立した本人用questionStars設定で、既存回答・問題・成績の一括更新は禁止。試験の★は利用可だが採点方式は維持。詳細・テスト・デプロイはREADME/WORKLOG。
 - 2026-10-24〜11-15限定のアイコンを使用中。元絵は `public/icons/standard.png`、`npm run build` が期限を判定して公開用アイコンとmanifest/metadataを整える。直接 `next build` でこの処理を迂回しない。11/16 00:10 JSTに復元・Hosting公開の単発予約（ID `automation`）。詳細はREADME/WORKLOG。
 - 管理者は既存のmuroアカウントのみ。UIDや既存アカウントを勝手に変更しない。
 - 修正後は必ず最終バグチェックを行い、確認範囲と未確認事項を報告する。

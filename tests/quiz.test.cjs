@@ -82,6 +82,8 @@ async function setup(options = {}) {
   const calls = [],
     questions = { q1: q("q1"), q2: q("q2") };
   let fail = false;
+  const starStore = options.starStore ?? new Map();
+  const starCalls = [];
   const helpers = {
     getUserProfile: async () => ({
       username: "test",
@@ -89,6 +91,7 @@ async function setup(options = {}) {
     }),
     getYears: async () => options.years ?? ["2025a"],
     getCategories: async () => ["気道管理"],
+    fetchQuestions: async () => { if (options.starQuestionsLoad) return options.starQuestionsLoad(); return options.starQuestions ?? Object.values(questions); },
     getReviewQueue: async () => ({
       total: 2,
       cards: [{ questionId: "q1" }, { questionId: "q2" }],
@@ -165,8 +168,17 @@ async function setup(options = {}) {
     },
     "@/lib/firebase": { auth: mockAuth, db: {} },
     "@/lib/firebaseHelpers": helpers,
+    "@/lib/questionStars": {
+      getQuestionStars: async uid => options.starLoad ? options.starLoad(uid) : [...(starStore.get(uid) ?? [])],
+      setQuestionStar: async (uid, id, starred) => {
+        starCalls.push({uid, id, starred});
+        if (options.starSave) await options.starSave(uid, id, starred);
+        const ids = new Set(starStore.get(uid) ?? []); if (starred) ids.add(id); else ids.delete(id); starStore.set(uid, ids);
+      },
+    },
     "@/lib/srs": {
       SRS_OPTIONS: load("src/lib/srs.ts", {}).SRS_OPTIONS,
+      automaticRating: load("src/lib/srs.ts", {}).automaticRating,
     },
     "firebase/firestore": {
       doc: (_, c, id) => id,
@@ -195,6 +207,8 @@ async function setup(options = {}) {
   return {
     storage,
     calls,
+    starCalls,
+    starStore,
     renderer,
     button: label => renderer.root.findAllByType('button').find(b => text(b).includes(label)),
     click,
@@ -212,13 +226,13 @@ test('live UID switch clears answered daily question and rejects captured old sa
   const authRef = {};
   const s = await setup({ uid: 'alice', authRef });
   await s.click('今日の20問'); await s.clickChoice('a');
-  const oldRating = s.button('思い出せた').props.onClick;
+  const oldRating = s.button('次の問題 →').props.onClick;
   await act(async () => authRef.change({ uid: 'bob' }));
   assert.match(s.text(), /今日の20問/);
-  assert.doesNotMatch(s.text(), /選択肢A|思い出せた/);
+  assert.doesNotMatch(s.text(), /選択肢A|次の問題 →/);
   await act(async () => oldRating());
   assert.equal(s.calls.filter(Array.isArray).length, 0);
-  await s.click('今日の20問'); await s.clickChoice('a'); await s.click('思い出せた');
+  await s.click('今日の20問'); await s.clickChoice('a'); await s.click('次の問題 →');
   assert.equal(s.calls.filter(Array.isArray)[0][0], 'bob');
   await s.close();
 });
@@ -227,7 +241,7 @@ test('current auth mismatch blocks saving even before observer notification', as
   const authRef = {}; const s = await setup({ uid: 'alice', authRef });
   await s.click('今日の20問'); await s.clickChoice('a');
   authRef.currentOnly({ uid: 'bob' });
-  await s.click('思い出せた');
+  await s.click('次の問題 →');
   assert.equal(s.calls.filter(Array.isArray).length, 0);
   await s.close();
 });
@@ -235,7 +249,7 @@ test('current auth mismatch blocks saving even before observer notification', as
 test('UID change also discards free-quiz answers and captured exam actions', async () => {
   const authRef = {}; const s = await setup({ uid: 'alice', authRef });
   await s.click('クイズ'); await s.clickChoice('a');
-  const oldRating = s.button('思い出せた').props.onClick;
+  const oldRating = s.button('次の問題 →').props.onClick;
   await act(async () => authRef.change({ uid: 'bob' }));
   await act(async () => oldRating());
   assert.equal(s.calls.filter(Array.isArray).length, 0);
@@ -274,7 +288,7 @@ test('in-flight old-owner save success/failure cannot replace new-owner UI, incl
       return result;
     } });
     await s.click('今日の20問'); await s.clickChoice('a');
-    const rating = s.button('思い出せた');
+    const rating = s.button('次の問題 →');
     let pending; await act(async () => { pending = rating.props.onClick(); });
     await act(async () => authRef.change({ uid: 'bob' }));
     if (target === 'alice') await act(async () => authRef.change({ uid: 'alice' }));
@@ -293,14 +307,14 @@ test('stale tab is rejected before server save and offers working home recovery'
   const a = await setup({ storage, dailyQuestions: [q('q1')] });
   const b = await setup({ storage, dailyQuestions: [q('q1')] });
   await a.click('今日の20問'); await b.click('今日の20問');
-  await a.clickChoice('a'); await a.click('思い出せた'); await a.click('次の20問');
-  await b.clickChoice('a'); await b.click('思い出せた');
+  await a.clickChoice('a'); await a.click('次の問題 →'); await a.click('次の20問');
+  await b.clickChoice('a'); await b.click('次の問題 →');
   assert.match(b.text(), /別のタブでセットが変更/);
   assert.equal(b.calls.filter(Array.isArray).length, 0);
-  await b.click('思い出せた');
+  await b.click('次の問題 →');
   assert.equal(b.calls.filter(Array.isArray).length, 0);
   await b.click('ホームに戻る'); await b.click('今日の20問');
-  await b.clickChoice('a'); await b.click('思い出せた');
+  await b.clickChoice('a'); await b.click('次の問題 →');
   assert.match(b.text(), /完了：1 \/ 1問/);
   assert.equal(b.calls.filter(Array.isArray).length, 1);
   await a.close(); await b.close();
@@ -310,7 +324,7 @@ test('set replacement while save is pending also exposes home recovery', async (
   let release; const wait = new Promise(resolve => { release = resolve; });
   const storage = new Map(); const s = await setup({ storage, onSave: () => wait });
   await s.click('今日の20問'); await s.clickChoice('a');
-  const rating = s.button('思い出せた');
+  const rating = s.button('次の問題 →');
   let pending; await act(async () => { pending = rating.props.onClick(); });
   const key = [...storage.keys()].find(k => !k.endsWith(':seen'));
   const replacement = JSON.parse(storage.get(key)); replacement.token = 'replacement';
@@ -329,7 +343,7 @@ test('daily loads once, stops at twenty saved answers, and shows actual result',
     assert.match(s.text(),new RegExp(`${i+1} / 20問`));
     await s.clickChoice('a');
     assert.equal(s.calls.filter(Array.isArray).length,i);
-    await s.click('思い出せた');
+    await s.click('次の問題 →');
   }
   assert.match(s.text(),/完了：20 \/ 20問/);
   assert.match(s.text(),/正解 20 \/ 回答済み 20問/);
@@ -347,17 +361,17 @@ test('daily loads once, stops at twenty saved answers, and shows actual result',
 });
 test('daily resumes after partial finish/reload, and does not leak progress across UIDs', async()=>{
   const storage=new Map();let s=await setup({storage});
-  await s.click('今日の20問');await s.clickChoice('a');await s.click('今日はここまで');await s.click('思い出せた');
+  await s.click('今日の20問');await s.clickChoice('a');await s.click('保存して終了');
   assert.match(s.text(),/途中保存：1 \/ 2問/);await s.close();
   s=await setup({storage});assert.match(s.text(),/続きから/);await s.click('今日の20問');assert.match(s.text(),/2 \/ 2問/);
-  await s.clickChoice('a');await s.click('思い出せた');assert.match(s.text(),/完了：2 \/ 2問/);await s.close();
+  await s.clickChoice('a');await s.click('次の問題 →');assert.match(s.text(),/完了：2 \/ 2問/);await s.close();
   s=await setup({storage,uid:'another'});assert.match(s.text(),/始める/);await s.click('今日の20問');assert.match(s.text(),/1 \/ 2問/);await s.close();
 });
 test('daily retries failed saving with same attempt ID and does not advance',async()=>{
   const s=await setup();await s.click('今日の20問');await s.clickChoice('a');s.fail(true);
-  await s.click('思い出せた');assert.match(s.text(),/失敗しました/);assert.match(s.text(),/1 \/ 2問/);
+  await s.click('次の問題 →');assert.match(s.text(),/失敗しました/);assert.match(s.text(),/1 \/ 2問/);
   assert.equal(readDailySession(s.storage).done.length,0);
-  s.fail(false);await s.click('思い出せた');assert.match(s.text(),/2 \/ 2問/);
+  s.fail(false);await s.click('次の問題 →');assert.match(s.text(),/2 \/ 2問/);
   const calls=s.calls.filter(Array.isArray);assert.equal(calls[0][5],calls[1][5]);await s.close();
 });
 test('daily double starts and rating double clicks cannot duplicate work',async()=>{
@@ -368,7 +382,7 @@ test('daily double starts and rating double clicks cannot duplicate work',async(
   assert.equal(s.calls.filter(x=>x==='daily-load').length,1);
   await s.clickChoice('a');
   const text=n=>typeof n==='string'?n:(n?.children??[]).map(text).join('');
-  const rating=s.renderer.root.findAllByType('button').find(b=>text(b).includes('思い出せた'));
+  const rating=s.renderer.root.findAllByType('button').find(b=>text(b).includes('次の問題 →'));
   assert.ok(rating);
   await act(async()=>Promise.all([rating.props.onClick(),rating.props.onClick()]));
   assert.equal(s.calls.filter(Array.isArray).length,1);assert.match(s.text(),/完了：1 \/ 1問/);await s.close();
@@ -377,7 +391,7 @@ test('daily zero questions and deleted questions finish with actual count',async
   let s=await setup({dailyQuestions:[]});await s.click('今日の20問');assert.match(s.text(),/出題できる問題はありません/);assert.equal(s.calls.filter(Array.isArray).length,0);await s.close();
   let reads=0;
   s=await setup({dailyGet:async id=>++reads===1?q(id):null});await s.click('今日の20問');
-  await s.clickChoice('a');await s.click('思い出せた');assert.match(s.text(),/完了：1 \/ 1問/);assert.equal(s.calls.filter(Array.isArray).length,1);await s.close();
+  await s.clickChoice('a');await s.click('次の問題 →');assert.match(s.text(),/完了：1 \/ 1問/);assert.equal(s.calls.filter(Array.isArray).length,1);await s.close();
 });
 test('daily unfinished question resumes without saving and free quiz remains separate',async()=>{
   const s=await setup();await s.click('今日の20問');const first=readDailySession(s.storage).ids[0];
@@ -386,21 +400,21 @@ test('daily unfinished question resumes without saving and free quiz remains sep
   await s.click('クイズ');assert.match(s.text(),/問題 q9/);assert.ok(!s.text().includes('今日の20問 ·'));await s.close();
 });
 test('daily resumes committed-but-unacknowledged save without a duplicate answer',async()=>{
-  const storage=new Map();let s=await setup({storage});await s.click('今日の20問');await s.clickChoice('a');s.fail(true);await s.click('思い出せた');
+  const storage=new Map();let s=await setup({storage});await s.click('今日の20問');await s.clickChoice('a');s.fail(true);await s.click('次の問題 →');
   const call=s.calls.filter(Array.isArray)[0];await s.close();
   s=await setup({storage,dailyAttempts:[{id:call[5],questionId:call[1],isCorrect:true,answeredAt:Date.now()}]});
   await s.click('今日の20問');assert.match(s.text(),/2 \/ 2問/);assert.equal(s.calls.filter(Array.isArray).length,0);await s.close();
 });
 test('daily failed next-item read retries prior save ID without advancing twice',async()=>{
   let failNext=false;const s=await setup({dailyGet:async id=>{if(failNext)throw Error('offline');return q(id)}});
-  await s.click('今日の20問');await s.clickChoice('a');failNext=true;await s.click('思い出せた');assert.match(s.text(),/失敗しました/);
-  failNext=false;await s.click('思い出せた');const calls=s.calls.filter(Array.isArray);assert.equal(calls[0][5],calls[1][5]);
+  await s.click('今日の20問');await s.clickChoice('a');failNext=true;await s.click('次の問題 →');assert.match(s.text(),/失敗しました/);
+  failNext=false;await s.click('次の問題 →');const calls=s.calls.filter(Array.isArray);assert.equal(calls[0][5],calls[1][5]);
   assert.equal(readDailySession(s.storage).done.length,1);await s.close();
 });
 test('daily storage failure before start prevents answering; failure after save allows safe retry',async()=>{
   let broken=true;const s=await setup({storageFails:()=>broken});await s.click('今日の20問');assert.match(s.text(),/開始できませんでした/);assert.equal(s.calls.filter(Array.isArray).length,0);
-  broken=false;await s.click('今日の20問');await s.clickChoice('a');broken=true;await s.click('思い出せた');assert.match(s.text(),/失敗しました/);
-  broken=false;await s.click('思い出せた');const saves=s.calls.filter(Array.isArray);assert.equal(saves[0][5],saves[1][5]);assert.match(s.text(),/2 \/ 2問/);await s.close();
+  broken=false;await s.click('今日の20問');await s.clickChoice('a');broken=true;await s.click('次の問題 →');assert.match(s.text(),/失敗しました/);
+  broken=false;await s.click('次の問題 →');const saves=s.calls.filter(Array.isArray);assert.equal(saves[0][5],saves[1][5]);assert.match(s.text(),/2 \/ 2問/);await s.close();
 });
 test('daily answer double click locks first choice and stale rating cannot save next item',async()=>{
   const s=await setup();await s.click('今日の20問');
@@ -408,7 +422,7 @@ test('daily answer double click locks first choice and stale rating cannot save 
   const text=n=>typeof n==='string'?n:(n?.children??[]).map(text).join('');
   const a=buttons.find(b=>text(b).startsWith('A.')),b=buttons.find(b=>text(b).startsWith('B.'));
   await act(async()=>{await a.props.onClick();await b.props.onClick();});
-  const rate=s.renderer.root.findAllByType('button').find(b=>text(b).includes('思い出せた'));
+  const rate=s.renderer.root.findAllByType('button').find(b=>text(b).includes('次の問題 →'));
   const staleClick=rate.props.onClick;
   await act(async()=>staleClick());
   await act(async()=>staleClick());
@@ -416,15 +430,15 @@ test('daily answer double click locks first choice and stale rating cannot save 
 });
 test('daily last-item save failure stays answered until successful retry',async()=>{
   const s=await setup({dailyQuestions:[q('q1')]});await s.click('今日の20問');await s.clickChoice('b');s.fail(true);
-  await s.click('思い出せない');assert.ok(!s.text().includes('お疲れさまでした'));assert.match(s.text(),/失敗しました/);
-  s.fail(false);await s.click('思い出せない');assert.match(s.text(),/完了：1 \/ 1問/);assert.match(s.text(),/正解 0 \/ 回答済み 1問/);await s.close();
+  await s.click('次の問題 →');assert.ok(!s.text().includes('お疲れさまでした'));assert.match(s.text(),/失敗しました/);
+  s.fail(false);await s.click('次の問題 →');assert.match(s.text(),/完了：1 \/ 1問/);assert.match(s.text(),/正解 0 \/ 回答済み 1問/);await s.close();
 });
 test('daily two-choice answers survive rapid clicks and save exactly once',async()=>{
   const s=await setup({dailyQuestions:[{...q('q1'),answer:'ab'}]});await s.click('今日の20問');
   const text=n=>typeof n==='string'?n:(n?.children??[]).map(text).join('');
   const buttons=s.renderer.root.findAllByType('button'),a=buttons.find(b=>text(b).startsWith('A.')).props.onClick,b=buttons.find(b=>text(b).startsWith('B.')).props.onClick;
   await act(async()=>{a();b();a();});assert.match(s.text(),/✓ 正解/);
-  await s.click('思い出せた');assert.equal(s.calls.filter(Array.isArray).length,1);assert.equal(s.calls.filter(Array.isArray)[0][2],'ab');await s.close();
+  await s.click('次の問題 →');assert.equal(s.calls.filter(Array.isArray).length,1);assert.equal(s.calls.filter(Array.isArray)[0][2],'ab');await s.close();
 });
 test('daily JST midnight creates a new local session without erasing yesterday',async()=>{
   const storage=new Map();let s=await setup({storage,now:()=>Date.parse('2026-10-03T14:59:59Z')});await s.click('今日の20問');await s.close();
@@ -442,7 +456,7 @@ test('daily unlimited small-bank sets reuse safely with different attempt IDs',a
   const s=await setup({dailyQuestions:[q('q1')]});
   for(let set=0;set<5;set++){
     await s.click('今日の20問');assert.match(s.text(),/1 \/ 1問/);
-    await s.clickChoice('a');await s.click('思い出せた');assert.match(s.text(),/完了：1 \/ 1問/);
+    await s.clickChoice('a');await s.click('次の問題 →');assert.match(s.text(),/完了：1 \/ 1問/);
     await s.click('ホームに戻る');assert.match(s.text(),/次の20問/);
   }
   const saves=s.calls.filter(Array.isArray);assert.equal(saves.length,5);assert.equal(new Set(saves.map(c=>c[5])).size,5);
@@ -452,22 +466,22 @@ test('daily unlimited small-bank sets reuse safely with different attempt IDs',a
 });
 test('daily second-set double start, failed save and reload preserve set identity',async()=>{
   const storage=new Map();let s=await setup({storage,dailyQuestions:[q('q1')]});
-  await s.click('今日の20問');await s.clickChoice('a');await s.click('思い出せた');
+  await s.click('今日の20問');await s.clickChoice('a');await s.click('次の問題 →');
   const first=readDailySession(storage);await s.click('ホームに戻る');
   const start=s.renderer.root.findAllByType('button').find(b=>String(b.children).includes('今日の20問')).props.onClick;
   await act(async()=>Promise.all([start(),start()]));
   const second=readDailySession(storage);assert.notEqual(first.token,second.token);assert.equal(s.calls.filter(c=>c==='daily-load').length,2);
-  await s.clickChoice('b');s.fail(true);await s.click('思い出せない');
+  await s.clickChoice('b');s.fail(true);await s.click('次の問題 →');
   const failed=s.calls.filter(Array.isArray).at(-1);assert.equal(readDailySession(storage).done.length,0);await s.close();
   s=await setup({storage,dailyQuestions:[q('q1')]});assert.match(s.text(),/続きから/);await s.click('今日の20問');
-  assert.equal(readDailySession(storage).token,second.token);await s.clickChoice('b');await s.click('思い出せない');
+  assert.equal(readDailySession(storage).token,second.token);await s.clickChoice('b');await s.click('次の問題 →');
   assert.equal(s.calls.filter(Array.isArray)[0][5],failed[5]);assert.match(s.text(),/完了：1 \/ 1問/);await s.close();
 });
 test('daily active set crossing midnight saves to its original date then starts a fresh day',async()=>{
   let now=Date.parse('2026-10-03T14:59:59Z');const storage=new Map();
   const s=await setup({storage,now:()=>now,dailyQuestions:[q('q1'),q('q2')]});await s.click('今日の20問');
   const original=readDailySession(storage);await s.clickChoice('a');now=Date.parse('2026-10-03T15:00:00Z');
-  await s.click('今日はここまで');await s.click('思い出せた');
+  await s.click('保存して終了');
   assert.equal(readDailySession(storage).date,'2026-10-03');assert.match(s.calls.filter(Array.isArray)[0][5],/daily-2026-10-03-/);
   await s.click('ホームに戻る');assert.match(s.text(),/始める/);await s.click('今日の20問');
   const today=readDailySession(storage);assert.equal(today.date,'2026-10-04');assert.notEqual(today.token,original.token);
@@ -482,10 +496,10 @@ test('daily home contains one daily entry and no old ten-question or assessment 
 test('daily stale rating from earlier set cannot answer reused question in new set',async()=>{
   const s=await setup({dailyQuestions:[q('q1')]});await s.click('今日の20問');await s.clickChoice('a');
   const text=n=>typeof n==='string'?n:(n?.children??[]).map(text).join('');
-  const oldRating=s.renderer.root.findAllByType('button').find(b=>text(b).includes('思い出せた')).props.onClick;
+  const oldRating=s.renderer.root.findAllByType('button').find(b=>text(b).includes('次の問題 →')).props.onClick;
   await act(async()=>oldRating());await s.click('ホームに戻る');await s.click('今日の20問');
   await act(async()=>oldRating());assert.equal(s.calls.filter(Array.isArray).length,1);assert.equal(readDailySession(s.storage).done.length,0);
-  await s.clickChoice('b');await s.click('思い出せない');assert.equal(s.calls.filter(Array.isArray).length,2);assert.match(s.text(),/正解 0/);await s.close();
+  await s.clickChoice('b');await s.click('次の問題 →');assert.equal(s.calls.filter(Array.isArray).length,2);assert.match(s.text(),/正解 0/);await s.close();
 });
 test('daily home keeps brief description and collapsed resumption details',async()=>{
   const s=await setup();const details=s.renderer.root.findByType('details');
@@ -497,7 +511,7 @@ test('daily home keeps brief description and collapsed resumption details',async
   await s.close();
 });
 test('daily completed summary starts next set directly and guards double click',async()=>{
-  const s=await setup({dailyQuestions:[q('q1')]});await s.click('今日の20問');await s.clickChoice('a');await s.click('思い出せた');
+  const s=await setup({dailyQuestions:[q('q1')]});await s.click('今日の20問');await s.clickChoice('a');await s.click('次の問題 →');
   const first=readDailySession(s.storage);assert.match(s.text(),/ホームに戻る/);
   const next=s.renderer.root.findAllByType('button').find(b=>b.children.join('')==='次の20問').props.onClick;
   await act(async()=>Promise.all([next(),next()]));
@@ -505,7 +519,7 @@ test('daily completed summary starts next set directly and guards double click',
   assert.equal(s.calls.filter(c=>c==='daily-load').length,2);assert.equal(s.calls.filter(Array.isArray).length,1);await s.close();
 });
 test('daily partial summary resumes same set directly without another candidate load',async()=>{
-  const s=await setup();await s.click('今日の20問');await s.clickChoice('a');await s.click('今日はここまで');await s.click('思い出せた');
+  const s=await setup();await s.click('今日の20問');await s.clickChoice('a');await s.click('保存して終了');
   const partial=readDailySession(s.storage);assert.match(s.text(),/途中保存：1 \/ 2問/);assert.match(s.text(),/ホームに戻る/);
   await s.click('続きから');assert.match(s.text(),/2 \/ 2問/);assert.equal(readDailySession(s.storage).token,partial.token);
   assert.equal(s.calls.filter(c=>c==='daily-load').length,1);await s.close();
@@ -516,10 +530,10 @@ test("review follows queue and finishes without random questions", async () => {
   await s.click("復習を開始");
   assert.match(s.text(), /問題 q1/);
   await s.click("選択肢A");
-  await s.click("思い出せた");
+  await s.click("次の問題 →");
   assert.match(s.text(), /問題 q2/);
   await s.click("選択肢A");
-  await s.click("思い出せた");
+  await s.click("次の問題 →");
   assert.match(s.text(), /お疲れさまでした/);
   assert.equal(s.calls.includes("random"), false);
   assert.deepEqual(
@@ -528,16 +542,172 @@ test("review follows queue and finishes without random questions", async () => {
   );
   await s.close();
 });
-test("finish waits for rating and saves last answer before summary", async () => {
+test("finish saves last answer immediately with the automatic rating before summary", async () => {
   const s = await setup();
   await s.click("クイズ");
   await s.click("選択肢A");
-  await s.click("今日はここまで");
-  assert.match(s.text(), /この回答を保存して終了/);
-  await s.click("思い出せた");
+  await s.click("保存して終了");
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   assert.match(s.text(), /お疲れさまでした/);
   await s.close();
+});
+
+test('stars toggle before and after answering without writing attempts or changing the answer', async () => {
+  const s = await setup({ question: q('q1') });
+  await s.click('クイズ');
+  await s.click('☆ チェック');
+  assert.equal(s.starCalls.length, 1);
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  assert.match(s.text(), /チェック済み/);
+  await s.clickChoice('b');
+  await s.click('★ チェック済み');
+  assert.match(s.text(), /不正解/);
+  assert.equal(s.starCalls[1].starred, false);
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  await s.click('☆ チェック');
+  await s.click('保存して終了');
+  assert.equal(s.calls.filter(Array.isArray)[0][4], 'again');
+  await s.click('ホームに戻る');
+  await s.click('★を振り返る');
+  assert.match(s.text(), /問題 q1/);
+  assert.match(s.text(), /正答：A/);
+  assert.match(s.text(), /解説/);
+  assert.equal(s.calls.filter(Array.isArray).length, 1);
+  await s.click('★ チェック済み');
+  assert.match(s.text(), /まだありません/);
+  await s.close();
+});
+
+test('stars persist across reloads and are separate for each account', async () => {
+  const store = new Map([['alice', new Set(['q2'])]]);
+  let s = await setup({ uid: 'alice', starStore: store });
+  await s.click('★を振り返る'); assert.match(s.text(), /問題 q2/); assert.doesNotMatch(s.text(), /問題 q1/); await s.close();
+  s = await setup({ uid: 'bob', starStore: store });
+  await s.click('★を振り返る'); assert.match(s.text(), /まだありません/); await s.close();
+});
+
+test('starred-only quiz follows a fixed queue, ignores filters, and finishes without random questions', async () => {
+  const s = await setup({ starStore: new Map([['test', new Set(['q2', 'q1', 'missing'])]]) });
+  await s.click('★を振り返る'); await s.click('★の問題だけ解く');
+  assert.match(s.text(), /問題 q1/);
+  await s.clickChoice('a'); await s.click('次の問題 →');
+  assert.match(s.text(), /問題 q2/);
+  await s.clickChoice('b'); await s.click('次の問題 →');
+  assert.match(s.text(), /お疲れさまでした/);
+  assert.equal(s.calls.includes('random'), false);
+  assert.deepEqual(s.calls.filter(Array.isArray).map(c => c[4]), ['good', 'again']);
+  await s.close();
+});
+
+test('exam stars are available before and after answering without changing exam grading', async () => {
+  const s = await setup();
+  await s.click('試験モード'); await s.click('2025年度');
+  await s.click('☆ チェック'); await s.clickChoice('a');
+  await s.click('★ チェック済み'); await s.click('☆ チェック');
+  assert.equal(s.calls.filter(Array.isArray).length, 0);
+  await s.click('結果を見る'); await s.click('B問題へ進む');
+  await s.clickChoice('b'); await s.click('結果を見る');
+  assert.equal(s.calls.find(c => c[0] === 'exam')[1].score, 50);
+  assert.equal(s.starCalls.length, 3);
+  await s.close();
+});
+
+test('failed star writes never show false success and do not block answer saving', async () => {
+  let fail = true;
+  const s = await setup({ starSave: async () => { if (fail) throw Error('offline'); } });
+  await s.click('クイズ'); await s.click('☆ チェック');
+  assert.match(s.text(), /★の保存に失敗/); assert.doesNotMatch(s.text(), /チェック済み/);
+  fail = false; await s.click('★を再読み込み'); await s.click('☆ チェック');
+  assert.match(s.text(), /チェック済み/);
+  await s.clickChoice('a'); await s.click('次の問題 →');
+  assert.equal(s.calls.filter(Array.isArray).length, 1); await s.close();
+});
+
+test('star load failure and question-list failure are not reported as an empty list', async () => {
+  let fail = true;
+  const s = await setup({ starLoad: async () => { if (fail) throw Error('offline'); return ['q1']; } });
+  await s.click('★を振り返る'); assert.match(s.text(), /★を読み込めません/); assert.doesNotMatch(s.text(), /まだありません/);
+  fail = false; await s.click('★を再読み込み'); assert.match(s.text(), /問題 q1/); await s.close();
+  const t = await setup({ starQuestionsLoad: async () => { throw Error('offline'); } });
+  await t.click('★を振り返る'); assert.match(t.text(), /問題を読み込めません/); assert.doesNotMatch(t.text(), /まだありません/); await t.close();
+});
+
+test('pending star write and captured old handler cannot write into the next account', async () => {
+  const authRef = {}; let release;
+  const s = await setup({ uid: 'alice', authRef, starSave: () => new Promise(resolve => { release = resolve; }) });
+  await s.click('クイズ'); const old = s.button('☆ チェック').props.onClick;
+  let pending; await act(async () => { pending = old(); });
+  await act(async () => authRef.change({ uid: 'bob' }));
+  await act(async () => { release(); await pending; });
+  await act(async () => old());
+  assert.equal(s.starCalls.length, 1); assert.equal(s.starCalls[0].uid, 'alice');
+  await s.click('★を振り返る'); assert.match(s.text(), /まだありません/); await s.close();
+});
+
+test('late old star load cannot replace the current account list after A-B-A', async () => {
+  const authRef = {}; let release; let calls = 0;
+  const s = await setup({ uid: 'alice', authRef, starLoad: uid => uid === 'alice' && ++calls === 1 ? new Promise(resolve => { release = resolve; }) : Promise.resolve(uid === 'alice' ? ['q2'] : []) });
+  await act(async () => authRef.change({ uid: 'bob' }));
+  await act(async () => authRef.change({ uid: 'alice' }));
+  await act(async () => release(['q1']));
+  await s.click('★を振り返る'); assert.match(s.text(), /問題 q2/); assert.doesNotMatch(s.text(), /問題 q1/); await s.close();
+});
+
+test('star save double clicks are locked and a question change does not apply the star to the next question', async () => {
+  let release;
+  const s = await setup({ starSave: () => new Promise(resolve => { release = resolve; }) });
+  await s.click('復習モード'); await s.click('復習を開始');
+  const toggle = s.button('☆ チェック').props.onClick;
+  await act(async () => { toggle(); toggle(); });
+  assert.equal(s.starCalls.length, 1);
+  await s.clickChoice('a'); await s.click('次の問題 →'); assert.match(s.text(), /問題 q2/);
+  await act(async () => release());
+  assert.doesNotMatch(s.text(), /チェック済み/); assert.equal(s.starCalls[0].id, 'q1'); await s.close();
+});
+
+test('automatic SRS schedules wrong answers earlier than correct answers, including mature cards', () => {
+  const { scheduleCard, automaticRating } = load('src/lib/srs.ts', {});
+  const now = new Date('2026-10-25T00:00:00Z');
+  for (const card of [null, { stability: 30, difficulty: 5, elapsedDays: 30, scheduledDays: 30, reps: 10, lapses: 0, state: 2, lastReview: new Date('2026-09-25T00:00:00Z'), due: now }]) {
+    const wrong = scheduleCard(card, automaticRating(false), now);
+    const correct = scheduleCard(card, automaticRating(true), now);
+    assert.ok(wrong.nextDue < correct.nextDue);
+  }
+});
+
+test('captured continue from a previous review question cannot save a new attempt ID', async () => {
+  const s = await setup();
+  await s.click('復習モード'); await s.click('復習を開始'); await s.clickChoice('a');
+  const old = s.button('次の問題 →').props.onClick;
+  await act(async () => old());
+  await s.clickChoice('b');
+  await act(async () => old());
+  assert.equal(s.calls.filter(Array.isArray).length, 1);
+  await s.click('次の問題 →');
+  assert.deepEqual(s.calls.filter(Array.isArray).map(c => c[1]), ['q1','q2']); await s.close();
+});
+
+test('star repository writes only the owner preference and preserves all existing study records', async () => {
+  const writes = []; const user = { currentUser: { uid: 'alice' } };
+  const { getQuestionStars, setQuestionStar } = load('src/lib/questionStars.ts', {
+    './firebase': { auth: user, db: {} },
+    'firebase/firestore': {
+      doc: (...args) => args.filter(x => typeof x === 'string').join('/'),
+      collection: (...args) => args.filter(x => typeof x === 'string').join('/'),
+      serverTimestamp: () => 'server-time',
+      getDocs: async () => ({ docs: [{id:'q1',data:()=>({starred:true})},{id:'q2',data:()=>({starred:false})}] }),
+      setDoc: async (...args) => writes.push(args),
+    },
+  });
+  assert.deepEqual(Array.from(await getQuestionStars('alice')), ['q1']);
+  await setQuestionStar('alice', 'q1', true); await setQuestionStar('alice', 'q1', false);
+  assert.equal(writes.length, 2);
+  assert.equal(writes[0][0], 'users/alice/questionStars/q1');
+  assert.deepEqual(Object.keys(writes[0][1]).sort(), ['questionId','starred','updatedAt']);
+  assert.equal(writes[1][1].starred, false);
+  await assert.rejects(setQuestionStar('bob', 'q1', true));
+  await assert.rejects(setQuestionStar('alice', 'bad/id', true));
+  assert.equal(writes.length, 2);
 });
 test("failed saving stays on same review question and retries with same attempt ID", async () => {
   const s = await setup();
@@ -545,11 +715,11 @@ test("failed saving stays on same review question and retries with same attempt 
   await s.click("復習を開始");
   await s.click("選択肢A");
   s.fail(true);
-  await s.click("思い出せた");
+  await s.click("次の問題 →");
   assert.match(s.text(), /失敗しました/);
   assert.match(s.text(), /問題 q1/);
   s.fail(false);
-  await s.click("思い出せた");
+  await s.click("次の問題 →");
   const saves = s.calls.filter(Array.isArray);
   assert.equal(saves[0][5], saves[1][5]);
   assert.match(s.text(), /問題 q2/);
@@ -663,13 +833,11 @@ test("Functions reject forged admins and preserve muro as sole administrator", a
     true,
   );
 });
-test("home after answering also requests saving rather than dropping answer", async () => {
+test("home after answering saves with automatic rating rather than dropping the answer", async () => {
   const s = await setup();
   await s.click("クイズ");
   await s.click("選択肢A");
   await s.click("← ホーム");
-  assert.match(s.text(), /この回答を保存して終了/);
-  await s.click("思い出せた");
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   assert.match(s.text(), /お疲れさまでした/);
   await s.close();
@@ -714,9 +882,8 @@ test("screen markup matches original unaffected screens and reviewed answer pane
   await s.click("解説を見る");
   snap(s, "explanation");
   await s.click("×");
-  await s.click("今日はここまで");
   snap(s, "finish-prompt");
-  await s.click("思い出せた");
+  await s.click("保存して終了");
   snap(s, "summary");
   await s.click("ホームに戻る");
   await s.click("試験モード");
@@ -794,19 +961,24 @@ test("screen markup matches original unaffected screens and reviewed answer pane
   }
   const learningUpdated = JSON.parse(fs.readFileSync("tests/learning-screen-baseline.json"));
   assert.deepEqual(Object.keys(learningUpdated).sort(), [...learningChanged].sort());
+  // 2026-10-25: explicitly reviewed automatic-answer/star changes only.
+  // Keep all three historical baselines intact; unchanged states still use them.
+  const starsChanged = [...changed, 'home', 'admin-home', 'admin-panel', 'password-panel'];
+  if (process.env.RECORD_STARS_BASELINE === '1') fs.writeFileSync('tests/stars-screen-baseline.json', JSON.stringify(Object.fromEntries(starsChanged.map(name => [name, hashes[name]])), null, 2) + '\n');
+  const starsUpdated = JSON.parse(fs.readFileSync('tests/stars-screen-baseline.json'));
+  assert.deepEqual(Object.keys(starsUpdated).sort(), [...starsChanged].sort());
   assert.deepEqual(hashes, {
     ...JSON.parse(fs.readFileSync("tests/screen-baseline.json")),
     ...updated,
     ...learningUpdated,
+    ...starsUpdated,
   });
 });
 
-test("each recall choice saves the matching rating and advances even after an incorrect answer", async () => {
-  for (const [label, rating] of [
-    ["思い出せない", "again"],
-    ["迷った", "hard"],
-    ["思い出せた", "good"],
-    ["余裕で分かった", "easy"],
+test("correctness automatically chooses the rating, with no four recall buttons", async () => {
+  for (const [choice, rating] of [
+    ['選択肢B', 'again'],
+    ['選択肢A', 'good'],
   ]) {
     const s = await setup();
     await s.click("復習モード");
@@ -816,10 +988,9 @@ test("each recall choice saves the matching rating and advances even after an in
         .length,
       0,
     );
-    await s.click("選択肢B");
-    assert.match(s.text(), /不正解/);
+    await s.click(choice);
+    assert.doesNotMatch(s.text(), /思い出せない|迷った|思い出せた|余裕で分かった/);
     assert.match(s.text(), /正答：A/);
-    assert.match(s.text(), /回答を保存して次へ/);
     const dock = s.renderer.root.findByProps({
       "aria-label": "回答結果と次の操作",
     });
@@ -832,26 +1003,23 @@ test("each recall choice saves the matching rating and advances even after an in
       scroll.findAllByProps({ "aria-label": "回答結果と次の操作" }).length,
       0,
     );
-    await s.click(label);
+    await s.click('次の問題 →');
     assert.equal(s.calls.filter(Array.isArray)[0][4], rating);
     assert.match(s.text(), /問題 q2/);
     await s.close();
   }
 });
 
-test("ending can be cancelled; opening and closing explanation never saves an answer", async () => {
+test("opening and closing explanation never saves an answer; next saves automatically", async () => {
   const s = await setup();
   await s.click("復習モード");
   await s.click("復習を開始");
   await s.click("選択肢A");
-  await s.click("今日はここまで");
-  assert.match(s.text(), /この回答を保存して終了/);
   await s.click("解説を見る");
   assert.equal(s.renderer.root.findAllByProps({ role: "dialog" }).length, 1);
   await s.click("×");
   assert.equal(s.calls.filter(Array.isArray).length, 0);
-  await s.click("終了をやめて、続ける");
-  await s.click("思い出せた");
+  await s.click("次の問題 →");
   assert.match(s.text(), /問題 q2/);
   assert.equal(s.calls.filter(Array.isArray).length, 1);
   await s.close();
@@ -894,7 +1062,7 @@ test("scanned question preserves line breaks, figure, combination answer and exp
   assert.match(s.text(),/出題当時と現在の違い/);
   assert.equal(s.calls.filter(Array.isArray).length,0);
   await s.click('×');
-  await s.click('思い出せた');
+  await s.click('次の問題 →');
   const saved=s.calls.filter(Array.isArray)[0];
   assert.equal(saved[1],'2015a-44');assert.equal(saved[2],'d');
   await s.close();
@@ -936,7 +1104,7 @@ test('every approved scanned question completes display, correct response, expla
    await s.click('解説を見る');
    assert.ok(s.text().includes(row.data.explanation),row.id+' explanation');
    assert.equal(s.calls.filter(Array.isArray).length,0);
-   await s.click('×');await s.click('思い出せた');
+   await s.click('×');await s.click('次の問題 →');
    const saved=s.calls.filter(Array.isArray);
    assert.equal(saved.length,1,row.id+' save count');
    assert.equal(saved[0][1],row.id);assert.equal(saved[0][2],row.data.answer);

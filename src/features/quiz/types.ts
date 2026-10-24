@@ -22,6 +22,7 @@ export type Phase =
   | "empty"
   | "stats"
   | "review_list"
+  | "star_list"
   | "settings"
   | "exam_select"
   | "exam_question"

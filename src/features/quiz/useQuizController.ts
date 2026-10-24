@@ -11,8 +11,10 @@ import {
   saveAttempt,
   getReviewQueue,
   getStats,
+  fetchQuestions,
 } from "@/lib/firebaseHelpers";
-import { type SrsRating } from "@/lib/srs";
+import { automaticRating } from "@/lib/srs";
+import { getQuestionStars, setQuestionStar } from "@/lib/questionStars";
 
 import type { Question, Phase, ChoiceKey } from "./types";
 import { playSound } from "./sound";
@@ -40,6 +42,7 @@ export function useQuizController() {
   const loadingRef = useRef(false);
   const savingRef = useRef(false);
   const attemptIdRef = useRef("");
+  const renderedAttemptId = attemptIdRef.current;
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [staleDaily, setStaleDaily] = useState(false);
@@ -54,7 +57,16 @@ export function useQuizController() {
   const ownedAction = <A extends unknown[], R,>(action: (...args: A) => R) =>
     (...args: A) => { if (ownsUI()) return action(...args); };
   const [reviewIds, setReviewIds] = useState<string[] | null>(null);
-  const [finishAfterRating, setFinishAfterRating] = useState(false);
+  const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+  const [starLoading, setStarLoading] = useState(true);
+  const [starSaving, setStarSaving] = useState(false);
+  const [starError, setStarError] = useState("");
+  const [starredQuestions, setStarredQuestions] = useState<Question[]>([]);
+  const [starListError, setStarListError] = useState("");
+  const [starListLoading, setStarListLoading] = useState(false);
+  const starLock = useRef<object | null>(null);
+  const starLoadRequest = useRef<object | null>(null);
+  const starListRequest = useRef<object | null>(null);
   const daily = useDailyQuiz(user?.uid, phase);
   const dailyRenderedAttemptId = daily.active && daily.session && question ? daily.attemptId(question.id) : null;
   const answerLockRef = useRef(false);
@@ -80,7 +92,6 @@ export function useQuizController() {
     setReviewIds(null);
     setSaveError("");
     setStaleDaily(false);
-    setFinishAfterRating(false);
     setCycleComplete(false);
     setPhase("loading");
     try { const next = await daily.begin(); if (ownsUI()) showDailyQuestion(next); }
@@ -139,7 +150,16 @@ export function useQuizController() {
         setShowExplanation(false);
         setShowExamWarning(false);
         setCycleComplete(false);
-        setFinishAfterRating(false);
+        starLock.current = null;
+        starLoadRequest.current = null;
+        starListRequest.current = null;
+        setStarredIds(new Set());
+        setStarredQuestions([]);
+        setStarLoading(true);
+        setStarSaving(false);
+        setStarError("");
+        setStarListError("");
+        setStarListLoading(false);
         setReviewIds(null);
         setReviewQueue(null);
         setExcludeIds([]);
@@ -168,6 +188,70 @@ export function useQuizController() {
     getYears().then(setYears);
     getCategories().then(setCategories);
   }, [user]);
+
+  async function reloadStars() {
+    if (!user || !ownsUI() || starLock.current) return;
+    const request = {};
+    starLoadRequest.current = request;
+    setStarLoading(true);
+    setStarError("");
+    try {
+      const ids = await getQuestionStars(user.uid);
+      if (ownsUI() && starLoadRequest.current === request) setStarredIds(new Set(ids));
+    } catch {
+      if (ownsUI() && starLoadRequest.current === request) setStarError("★を読み込めませんでした。再読み込みしてください。");
+    } finally {
+      if (ownsUI() && starLoadRequest.current === request) { starLoadRequest.current = null; setStarLoading(false); }
+    }
+  }
+  useEffect(() => { if (user) void reloadStars(); }, [user?.uid, epoch]);
+
+  async function toggleStar(questionId: string) {
+    if (!user || !ownsUI() || starLoading || starError || starLock.current || starLoadRequest.current) return;
+    const request = {};
+    starLock.current = request;
+    setStarSaving(true);
+    const next = !starredIds.has(questionId);
+    try {
+      await setQuestionStar(user.uid, questionId, next);
+      if (!ownsUI() || starLock.current !== request) return;
+      setStarredIds(prev => { const ids = new Set(prev); if (next) ids.add(questionId); else ids.delete(questionId); return ids; });
+    } catch {
+      if (ownsUI() && starLock.current === request) setStarError("★の保存に失敗しました。再読み込みしてからお試しください。");
+    } finally {
+      if (ownsUI() && starLock.current === request) { starLock.current = null; setStarSaving(false); }
+    }
+  }
+
+  async function showStarred() {
+    if (!user || !ownsUI() || savingRef.current || loadingRef.current) return;
+    daily.stop();
+    setPhase("star_list");
+    const request = {};
+    starListRequest.current = request;
+    setStarListLoading(true);
+    setStarListError("");
+    try {
+      const questions = await fetchQuestions([], []);
+      if (ownsUI() && starListRequest.current === request) setStarredQuestions(questions);
+    } catch {
+      if (ownsUI() && starListRequest.current === request) setStarListError("問題を読み込めませんでした。もう一度お試しください。");
+    } finally {
+      if (ownsUI() && starListRequest.current === request) setStarListLoading(false);
+    }
+  }
+
+  async function beginStarredQuiz() {
+    if (!ownsUI() || phase !== 'star_list' || savingRef.current || loadingRef.current || starLoading || starSaving || starError || starListLoading || starListError) return;
+    const questions = starredQuestions.filter(q => starredIds.has(q.id));
+    if (!questions.length) return;
+    daily.stop();
+    setReviewIds(questions.map(q => q.id));
+    setQuestion(questions[0]);
+    attemptIdRef.current = crypto.randomUUID();
+    setSelected([]); setIsCorrect(null); setShowExplanation(false); setSaveError(""); setStaleDaily(false); setCycleComplete(false);
+    setPhase("question");
+  }
 
   const loadQuestion = useCallback(
     async (excluded = excludeIds) => {
@@ -204,7 +288,6 @@ export function useQuizController() {
     daily.stop();
     setReviewIds(null);
     setSaveError("");
-    setFinishAfterRating(false);
     setExcludeIds([]);
     setCycleComplete(false);
     await loadQuestion([]);
@@ -255,8 +338,9 @@ export function useQuizController() {
     }
   }
 
-  async function handleRating(rating: SrsRating) {
+  async function handleContinue(finish = false) {
     if (!ownsUI() || staleDaily || !attemptIdRef.current) return;
+    if (renderedAttemptId !== attemptIdRef.current) return;
     if (phase !== "answered" || !question || !user || !selected.length || savingRef.current) return;
     if (daily.active && (dailyQuestionIdRef.current !== question.id || dailyRenderedAttemptId !== attemptIdRef.current)) return;
     savingRef.current = true;
@@ -269,16 +353,15 @@ export function useQuizController() {
         question.id,
         selected.join(""),
         question.answer,
-        rating,
+        automaticRating(isCorrect === true),
         attemptIdRef.current,
       );
       if (!ownsUI()) return;
       if (daily.active) {
         await daily.afterSave(question.id, saved?.isCorrect ?? isCorrect === true);
         if (!ownsUI()) return;
-        if (finishAfterRating) {
+        if (finish) {
           dailyQuestionIdRef.current = null;
-          setFinishAfterRating(false);
           setPhase("summary");
         } else {
           const next = await daily.nextQuestion();
@@ -286,8 +369,7 @@ export function useQuizController() {
         }
         return;
       }
-      if (finishAfterRating) {
-        setFinishAfterRating(false);
+      if (finish) {
         setPhase("summary");
         return;
       }
@@ -354,7 +436,6 @@ export function useQuizController() {
       reviewQueue.cards.map((c: { questionId: string }) => c.questionId),
     );
     setSaveError("");
-    setFinishAfterRating(false);
     setCycleComplete(false);
     const reviewQ = reviewQueue.cards[0];
     const { getDoc, doc } = await import("firebase/firestore");
@@ -390,10 +471,21 @@ export function useQuizController() {
     examPartACount,
     examQuestions,
     examResult,
-    finishAfterRating,
     handleAnswer,
     handleExamAnswer: ownedAction(handleExamAnswer),
-    handleRating,
+    handleContinue,
+    starredIds,
+    questionStarred: !!question && starredIds.has(question.id),
+    starLoading,
+    starSaving,
+    starError,
+    reloadStars,
+    toggleStar,
+    showStarred,
+    starredQuestions: starredQuestions.filter(q => starredIds.has(q.id)).sort((a,b) => a.year.localeCompare(b.year) || a.qnum - b.qnum),
+    starListError,
+    starListLoading,
+    beginStarredQuiz,
     handleShowExamHistory: ownedAction(handleShowExamHistory),
     handleShowStats,
     isCorrect,
@@ -412,7 +504,6 @@ export function useQuizController() {
     selectedYears,
     setBgmEnabled,
     setBgmTrack,
-    setFinishAfterRating,
     setPhase: guardSetter(setPhase),
     setSelectedCats,
     setSelectedYears,
