@@ -10,6 +10,7 @@ import { scheduleCard, type SrsRating } from './srs';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import questionCategories from './questionCategories.json';
 import questionYears from './questionYears.json';
+import { createQuestionPoolCache } from './questionPoolCache';
 
 const DOMAIN = 'periop-quiz.app';
 
@@ -42,20 +43,30 @@ export async function fetchQuestions(years: string[], categories: string[]) {
   return docs;
 }
 
+const questionPoolCache = createQuestionPoolCache<Awaited<ReturnType<typeof fetchQuestions>>[number]>();
+// No in-app question editor currently exists. External edits/other tabs become
+// visible on the next TTL refresh; future local question writes must invalidate.
+export const invalidateQuestionPoolCache = questionPoolCache.invalidate;
+
 export async function getNextQuestion(
   years: string[],
   categories: string[],
   excludeIds: string[]
 ) {
-  const all = await fetchQuestions(years, categories);
+  const poolYears = [...years], poolCategories = [...categories];
+  // Cache only the public pool, never the selection or user-dependent inputs.
+  // Unauthenticated/server calls must still perform their own authorized read.
+  const all = typeof window !== 'undefined' && auth.currentUser?.uid
+    ? await questionPoolCache.get(poolYears, poolCategories, () => fetchQuestions(poolYears, poolCategories))
+    : await fetchQuestions(poolYears, poolCategories);
   const pool = all.filter(q => !excludeIds.includes(q.id));
   if (pool.length === 0) {
     if (all.length === 0) return { question: null, mode: 'empty', cycleComplete: false };
     const q = all[Math.floor(Math.random() * all.length)];
-    return { question: q, mode: 'new', cycleComplete: true };
+    return { question: structuredClone(q), mode: 'new', cycleComplete: true };
   }
   const q = pool[Math.floor(Math.random() * pool.length)];
-  return { question: q, mode: 'new', cycleComplete: false };
+  return { question: structuredClone(q), mode: 'new', cycleComplete: false };
 }
 
 export async function getYears(): Promise<string[]> {
